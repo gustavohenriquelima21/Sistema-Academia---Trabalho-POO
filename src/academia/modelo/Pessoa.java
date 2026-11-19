@@ -1,7 +1,7 @@
 
 package academia.modelo;
 
-public abstract class Pessoa {
+public abstract class Pessoa implements java.io.Serializable {
 
     private int id;
     private String nome;
