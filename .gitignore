@@ -1,0 +1,11 @@
+
+# Arquivos compilados do Java
+*.class
+
+# Pastas de compilação
+/academia/
+/app/
+
+# Dados locais de teste
+/dados/
+
