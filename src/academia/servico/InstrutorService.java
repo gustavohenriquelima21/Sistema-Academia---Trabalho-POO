@@ -2,15 +2,22 @@ package academia.servico;
 
 import academia.dados.InstrutorDAO;
 import academia.modelo.Instrutor;
+import academia.servico.TreinoService;
 
 import java.util.List;
 
 public class InstrutorService {
 
     private final InstrutorDAO instrutorDAO;
+    private final TreinoService treinoService;
 
     public InstrutorService() {
+        this(null);
+    }
+
+    public InstrutorService(TreinoService treinoService) {
         this.instrutorDAO = new InstrutorDAO();
+        this.treinoService = treinoService;
     }
 
     public Instrutor cadastrar(String nome, String cpf,
@@ -108,6 +115,11 @@ public class InstrutorService {
 
     public void excluir(int id) {
         buscarPorId(id);
+        if (treinoService != null && treinoService.possuiTreinoParaInstrutor(id)) {
+            throw new IllegalStateException(
+                "Não é possível excluir este instrutor porque há treinos vinculados."
+            );
+        }
         instrutorDAO.excluir(id);
     }
 
