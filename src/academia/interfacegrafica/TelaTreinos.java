@@ -117,6 +117,7 @@ public class TelaTreinos extends JDialog {
         conteudo.add(rodape, BorderLayout.SOUTH);
 
         setContentPane(conteudo);
+        atualizarDados();
 
         addWindowFocusListener(new WindowAdapter() {
             @Override
@@ -311,6 +312,9 @@ public class TelaTreinos extends JDialog {
         }
         comboInstrutor.setModel(modeloInstrutores);
         selecionarPorId(comboInstrutor, instrutorAtual);
+        if (comboInstrutor.getSelectedItem() == null && comboInstrutor.getItemCount() > 0) {
+            comboInstrutor.setSelectedIndex(0);
+        }
 
         DefaultComboBoxModel<Object> modeloFiltro = new DefaultComboBoxModel<>();
         modeloFiltro.addElement("Todos os alunos");
@@ -421,6 +425,16 @@ public class TelaTreinos extends JDialog {
         String objetivo = String.valueOf(comboObjetivo.getSelectedItem());
         Aluno aluno = (Aluno) comboAluno.getSelectedItem();
         Instrutor instrutor = (Instrutor) comboInstrutor.getSelectedItem();
+
+        if (instrutor == null) {
+            mostrarErro("Não há instrutores cadastrados. Cadastre um instrutor pelo menu antes de salvar o treino.");
+            return;
+        }
+        if (aluno == null) {
+            mostrarErro("Não há alunos cadastrados para associar ao treino.");
+            return;
+        }
+
         try {
             if (idTreinoSelecionado == null) {
                 Treino treino = treinoService.criarTreino(nome, objetivo, instrutor, aluno);
