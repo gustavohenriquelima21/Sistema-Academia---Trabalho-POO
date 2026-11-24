@@ -71,7 +71,7 @@ public class TelaPrincipal extends JFrame {
 
     private void abrirAlunos() {
         if (telaAlunos == null || !telaAlunos.isDisplayable()) {
-            telaAlunos = new TelaAlunos(this, alunoService);
+            telaAlunos = new TelaAlunos(this, alunoService, treinoService);
         }
 
         telaAlunos.setVisible(true);
@@ -81,7 +81,7 @@ public class TelaPrincipal extends JFrame {
 
     private void abrirInstrutores() {
         if (telaInstrutores == null || !telaInstrutores.isDisplayable()) {
-            telaInstrutores = new TelaInstrutores(this, instrutorService);
+            telaInstrutores = new TelaInstrutores(this, instrutorService, treinoService);
         }
 
         telaInstrutores.setVisible(true);
