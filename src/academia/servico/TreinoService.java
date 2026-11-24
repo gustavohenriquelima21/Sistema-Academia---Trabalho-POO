@@ -5,19 +5,20 @@ import academia.modelo.Aluno;
 import academia.modelo.Instrutor;
 import academia.modelo.Treino;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 
 public class TreinoService {
 
-    private static final String ARQUIVO = "dados/treinos.dat";
+    private static final Path ARQUIVO = Paths.get("dados", "treinos.dat");
 
     private List<Treino> treinos;
     private int proximoId;
@@ -128,14 +129,19 @@ public class TreinoService {
     }
 
     private void salvar() {
-        File arquivo = new File(ARQUIVO);
-        if (arquivo.getParentFile() != null) {
-            arquivo.getParentFile().mkdirs();
-        }
-        try (ObjectOutputStream saida = new ObjectOutputStream(new FileOutputStream(arquivo))) {
-            saida.writeObject(new ArrayList<>(treinos));
+        Path temporario = null;
+        try {
+            Files.createDirectories(ARQUIVO.toAbsolutePath().getParent());
+            temporario = Files.createTempFile(ARQUIVO.toAbsolutePath().getParent(), "treinos", ".tmp");
+            try (ObjectOutputStream saida = new ObjectOutputStream(Files.newOutputStream(temporario))) {
+                saida.writeObject(new ArrayList<>(treinos));
+            }
+            try { Files.move(temporario, ARQUIVO, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING); }
+            catch (java.nio.file.AtomicMoveNotSupportedException e) { Files.move(temporario, ARQUIVO, StandardCopyOption.REPLACE_EXISTING); }
         } catch (IOException e) {
             throw new RuntimeException("Erro ao salvar os treinos: " + e.getMessage(), e);
+        } finally {
+            if (temporario != null) try { Files.deleteIfExists(temporario); } catch (IOException ignored) { }
         }
     }
 
@@ -143,11 +149,10 @@ public class TreinoService {
     private void carregar() {
         treinos = new ArrayList<>();
         proximoId = 1;
-        File arquivo = new File(ARQUIVO);
-        if (!arquivo.exists()) {
+        if (!Files.exists(ARQUIVO)) {
             return;
         }
-        try (ObjectInputStream entrada = new ObjectInputStream(new FileInputStream(arquivo))) {
+        try (ObjectInputStream entrada = new ObjectInputStream(Files.newInputStream(ARQUIVO))) {
             treinos = (List<Treino>) entrada.readObject();
             for (Treino treino : treinos) {
                 proximoId = Math.max(proximoId, treino.getId() + 1);
