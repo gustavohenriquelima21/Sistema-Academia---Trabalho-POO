@@ -201,7 +201,6 @@ public class TelaAlunos extends JDialog {
 				}
 			}
 
-			// Restaura a seleção respeitando a busca e a ordenação, sem sobrescrever a edição.
 			if (linhaSelecionada >= 0) {
 				int linhaVisivel = tabelaAlunos.convertRowIndexToView(linhaSelecionada);
 				if (linhaVisivel >= 0) {

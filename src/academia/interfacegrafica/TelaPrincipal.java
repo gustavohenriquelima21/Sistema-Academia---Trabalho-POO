@@ -1,29 +1,32 @@
 package academia.interfacegrafica;
-
 import academia.dados.PlanoDAO;
 import academia.servico.AlunoService;
 import academia.servico.InstrutorService;
 import academia.servico.MatriculaService;
 import academia.servico.TreinoService;
-
 import javax.swing.*;
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
-
 public class TelaPrincipal extends JFrame {
-
-    private final AlunoService alunoService = new AlunoService();
-    private final PlanoDAO planoDAO = new PlanoDAO();
-    private final MatriculaService matriculaService = new MatriculaService();
-    private final InstrutorService instrutorService = new InstrutorService();
-    private final TreinoService treinoService = new TreinoService();
+    private final AlunoService alunoService;
+    private final PlanoDAO planoDAO;
+    private final MatriculaService matriculaService;
+    private final InstrutorService instrutorService;
+    private final TreinoService treinoService;
 
     private TelaAlunos telaAlunos;
     private TelaMatriculas telaMatriculas;
     private TelaTreinos telaTreinos;
 
-    public TelaPrincipal() {
+    public TelaPrincipal(AlunoService alunoService, PlanoDAO planoDAO,
+                         MatriculaService matriculaService, InstrutorService instrutorService,
+                         TreinoService treinoService) {
         super("Sistema de Academia - Menu Principal");
+        this.alunoService = alunoService;
+        this.planoDAO = planoDAO;
+        this.matriculaService = matriculaService;
+        this.instrutorService = instrutorService;
+        this.treinoService = treinoService;
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(420, 290);
@@ -86,9 +89,5 @@ public class TelaPrincipal extends JFrame {
         telaTreinos.setVisible(true);
         telaTreinos.toFront();
         telaTreinos.requestFocus();
-    }
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new TelaPrincipal().setVisible(true));
     }
 }

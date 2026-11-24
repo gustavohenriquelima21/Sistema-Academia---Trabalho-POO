@@ -186,7 +186,6 @@ public class TelaMatriculas extends JDialog {
         List<Aluno> alunos = alunoService.listarTodos();
         List<Plano> planos = planoDAO.listarTodos();
 
-        // Evita duplicações a cada ganho de foco e restaura a seleção pelo ID.
         comboAluno.removeAllItems();
         comboPlano.removeAllItems();
 
