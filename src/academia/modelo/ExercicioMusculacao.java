@@ -74,7 +74,8 @@ public class ExercicioMusculacao extends Exercicio {
 
     @Override
     public double calcularDuracaoMinutos() {
-        int segundos = series * (repeticoes * SEGUNDOS_POR_REPETICAO + descansoSegundos);
+        long segundos = (long) series * repeticoes * SEGUNDOS_POR_REPETICAO
+                + (long) Math.max(0, series - 1) * descansoSegundos;
         return segundos / 60.0;
     }
 }
