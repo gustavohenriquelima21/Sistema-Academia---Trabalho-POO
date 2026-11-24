@@ -67,9 +67,22 @@ Os quatro DAOs de texto usam UTF-8 e mantêm o formato existente. A gravação s
 
 Os arquivos do projeto consultados não identificam nominalmente os integrantes. Inclua aqui os nomes do grupo, se necessário.
 
-## Compilar e executar
+## Como compilar e executar
 
-É necessário ter um JDK instalado, pois a compilação usa `javac`. No PowerShell, abra o terminal na pasta raiz do projeto e execute:
+É necessário ter o **JDK (Java Development Kit)** instalado para executar o sistema.
+
+### Opção 1 — Execução automática (Windows)
+
+1. Baixe ou clone este repositório.
+2. Abra a pasta principal do projeto.
+3. Execute o arquivo `abrir-projeto.bat`.
+4. Aguarde a compilação e a inicialização do sistema.
+
+O arquivo realiza automaticamente a compilação dos arquivos Java e inicia a aplicação.
+
+### Opção 2 — Execução manual pelo PowerShell
+
+Caso prefira executar os comandos manualmente, abra o PowerShell na pasta raiz do projeto e execute:
 
 ```powershell
 $javaSourceFiles = Get-ChildItem -Path src -Recurse -Filter *.java | ForEach-Object { $_.FullName }
@@ -77,4 +90,6 @@ javac -encoding UTF-8 -d out $javaSourceFiles
 java -cp out academia.app.Main
 ```
 
-O primeiro comando compila os fontes para `out/`; o segundo inicia `academia.app.Main`. Execute ambos a partir da raiz do projeto para que os arquivos relativos em `dados/` sejam usados corretamente.
+O primeiro comando localiza os arquivos `.java` dentro da pasta `src`. O segundo compila os arquivos para a pasta `out/`. O terceiro inicia a aplicação por meio da classe principal `academia.app.Main`.
+
+**Importante:** execute os comandos a partir da pasta raiz do projeto para que os caminhos relativos utilizados na persistência de dados funcionem corretamente.
