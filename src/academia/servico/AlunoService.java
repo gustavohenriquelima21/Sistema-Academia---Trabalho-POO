@@ -5,6 +5,7 @@ import academia.dados.AlunoDAO;
 import academia.dados.MatriculaDAO;
 import academia.excecoes.AlunoNaoEncontradoException;
 import academia.modelo.Aluno;
+import academia.servico.TreinoService;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -13,10 +14,16 @@ public class AlunoService {
 
     private final AlunoDAO alunoDAO;
     private final MatriculaDAO matriculaDAO;
+    private final TreinoService treinoService;
 
     public AlunoService() {
+        this(null);
+    }
+
+    public AlunoService(TreinoService treinoService) {
         this.alunoDAO = new AlunoDAO();
         this.matriculaDAO = new MatriculaDAO();
+        this.treinoService = treinoService;
     }
 
     public Aluno cadastrar(String nome, String cpf,
@@ -115,6 +122,11 @@ public class AlunoService {
         if (!matriculaDAO.listarPorAluno(id).isEmpty()) {
             throw new IllegalStateException(
                 "Não é possível excluir este aluno porque ele possui matrículas vinculadas."
+            );
+        }
+        if (treinoService != null && treinoService.possuiTreinoParaAluno(id)) {
+            throw new IllegalStateException(
+                "Não é possível excluir este aluno porque há treinos vinculados."
             );
         }
         alunoDAO.excluir(id);
