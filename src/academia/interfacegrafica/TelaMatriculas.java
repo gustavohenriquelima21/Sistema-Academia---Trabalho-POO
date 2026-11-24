@@ -44,6 +44,7 @@ public class TelaMatriculas extends JDialog {
         setLocationRelativeTo(telaPrincipal);
 
         criarComponentes();
+        atualizarDados();
 
         addWindowFocusListener(new WindowAdapter() {
             @Override
@@ -57,9 +58,17 @@ public class TelaMatriculas extends JDialog {
         Aluno aluno = (Aluno) comboAluno.getSelectedItem();
         Plano plano = (Plano) comboPlano.getSelectedItem();
 
-        if (aluno == null || plano == null) {
+        if (aluno == null) {
             JOptionPane.showMessageDialog(this,
-                    "Selecione um aluno e um plano.");
+                    "Selecione um aluno ativo.",
+                    "Aluno não selecionado", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        if (plano == null) {
+            JOptionPane.showMessageDialog(this,
+                    "Não há planos ativos. Use o botão 'Cadastrar plano' para criar um plano antes da matrícula.",
+                    "Plano não selecionado", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -129,11 +138,17 @@ public class TelaMatriculas extends JDialog {
             }
         });
 
+        JButton botaoCadastrarPlano = new JButton("Cadastrar plano");
+        botaoCadastrarPlano.addActionListener(e -> cadastrarPlano());
+        JPanel painelPlano = new JPanel(new BorderLayout(8, 0));
+        painelPlano.add(comboPlano, BorderLayout.CENTER);
+        painelPlano.add(botaoCadastrarPlano, BorderLayout.EAST);
+
         formulario.add(new JLabel("Aluno:"));
         formulario.add(comboAluno);
 
         formulario.add(new JLabel("Plano:"));
-        formulario.add(comboPlano);
+        formulario.add(painelPlano);
 
         formulario.add(new JLabel("Data de início (dd/MM/aaaa):"));
         formulario.add(campoData);
@@ -174,6 +189,68 @@ public class TelaMatriculas extends JDialog {
         setContentPane(conteudo);
     }
 
+    private void cadastrarPlano() {
+        JTextField campoNome = new JTextField();
+        JTextField campoValor = new JTextField();
+        JTextField campoDuracao = new JTextField();
+
+        JPanel formulario = new JPanel(new GridLayout(3, 2, 8, 8));
+        formulario.add(new JLabel("Nome do plano:"));
+        formulario.add(campoNome);
+        formulario.add(new JLabel("Valor mensal (R$):"));
+        formulario.add(campoValor);
+        formulario.add(new JLabel("Duração (meses):"));
+        formulario.add(campoDuracao);
+
+        int resposta = JOptionPane.showConfirmDialog(this, formulario,
+                "Cadastrar plano", JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE);
+        if (resposta != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        try {
+            String nome = campoNome.getText().trim();
+            double valorMensal = Double.parseDouble(
+                    campoValor.getText().trim().replace(',', '.'));
+            int duracaoMeses = Integer.parseInt(campoDuracao.getText().trim());
+
+            if (nome.isEmpty()) {
+                throw new IllegalArgumentException("Informe o nome do plano.");
+            }
+            if (!Double.isFinite(valorMensal) || valorMensal < 0) {
+                throw new IllegalArgumentException("Informe um valor mensal válido.");
+            }
+            if (duracaoMeses <= 0) {
+                throw new IllegalArgumentException("A duração deve ser maior que zero.");
+            }
+
+            Plano plano = new Plano(planoDAO.proximoId(), nome,
+                    valorMensal, duracaoMeses);
+            planoDAO.inserir(plano);
+            atualizarDados();
+            selecionarPlanoPorId(plano.getId());
+            JOptionPane.showMessageDialog(this,
+                    "Plano cadastrado e selecionado para a matrícula.");
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this,
+                    "Informe o valor mensal e a duração usando números válidos.",
+                    "Dados inválidos", JOptionPane.WARNING_MESSAGE);
+        } catch (IllegalArgumentException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage(),
+                    "Dados inválidos", JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+    private void selecionarPlanoPorId(int idPlano) {
+        for (int i = 0; i < comboPlano.getItemCount(); i++) {
+            if (comboPlano.getItemAt(i).getId() == idPlano) {
+                comboPlano.setSelectedIndex(i);
+                return;
+            }
+        }
+    }
+
     private void atualizarDados() {
         carregarDados();
         atualizarTabela();
@@ -205,6 +282,13 @@ public class TelaMatriculas extends JDialog {
                     comboPlano.setSelectedItem(plano);
                 }
             }
+        }
+
+        if (comboAluno.getSelectedItem() == null && comboAluno.getItemCount() > 0) {
+            comboAluno.setSelectedIndex(0);
+        }
+        if (comboPlano.getSelectedItem() == null && comboPlano.getItemCount() > 0) {
+            comboPlano.setSelectedIndex(0);
         }
     }
 
