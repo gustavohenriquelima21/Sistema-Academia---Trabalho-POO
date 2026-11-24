@@ -25,15 +25,19 @@ public final class Main {
         configurarVisual();
 
         try {
-            AlunoService alunoService = new AlunoService();
+            TreinoService treinoService = new TreinoService();
+            AlunoService alunoService = new AlunoService(treinoService);
             PlanoDAO planoDAO = new PlanoDAO();
             MatriculaService matriculaService = new MatriculaService();
-            InstrutorService instrutorService = new InstrutorService();
-            TreinoService treinoService = new TreinoService();
+            InstrutorService instrutorService = new InstrutorService(treinoService);
 
             TelaPrincipal telaPrincipal = new TelaPrincipal(
                     alunoService, planoDAO, matriculaService, instrutorService, treinoService);
             telaPrincipal.setVisible(true);
+            if (treinoService.getAvisoCarga() != null) {
+                JOptionPane.showMessageDialog(telaPrincipal, treinoService.getAvisoCarga(),
+                        "Arquivo de treinos recuperado", JOptionPane.WARNING_MESSAGE);
+            }
         } catch (RuntimeException e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(null,
