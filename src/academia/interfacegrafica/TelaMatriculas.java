@@ -3,7 +3,9 @@ package academia.interfacegrafica;
 import academia.dados.PlanoDAO;
 import academia.modelo.Aluno;
 import academia.modelo.Matricula;
+import academia.modelo.Mensalidade;
 import academia.modelo.Plano;
+import academia.modelo.StatusMensalidade;
 import academia.servico.AlunoService;
 import academia.servico.MatriculaService;
 
@@ -12,11 +14,13 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
 import java.util.List;
+import java.util.Locale;
 
 public class TelaMatriculas extends JDialog {
 
@@ -26,6 +30,15 @@ public class TelaMatriculas extends JDialog {
 
     private DefaultTableModel modeloTabela;
     private JTable tabelaMatriculas;
+    private DefaultTableModel modeloMensalidades;
+    private JTable tabelaMensalidades;
+    private JButton botaoCancelarMatricula;
+    private JButton botaoPagarMensalidade;
+
+    private Integer idMatriculaSelecionada;
+    private Integer numeroParcelaSelecionada;
+    private boolean atualizandoTabelaMatriculas;
+    private boolean atualizandoTabelaMensalidades;
 
     private final AlunoService alunoService;
     private final PlanoDAO planoDAO;
@@ -83,6 +96,9 @@ public class TelaMatriculas extends JDialog {
                     plano.getId(),
                     data
             );
+
+            idMatriculaSelecionada = matricula.getId();
+            numeroParcelaSelecionada = null;
 
             JOptionPane.showMessageDialog(this,
                     "Matrícula realizada com sucesso! ID: " + matricula.getId());
@@ -161,19 +177,12 @@ public class TelaMatriculas extends JDialog {
 
         formulario.setBorder(BorderFactory.createTitledBorder("Nova Matrícula"));
 
-        modeloTabela = new DefaultTableModel(
-                new String[]{"ID", "Aluno", "Plano", "Data de início", "Data de término", "Status"}, 0
-        );
-
-        tabelaMatriculas = new JTable(modeloTabela);
-        tabelaMatriculas.setRowHeight(25);
-
-        JPanel painelTabela = new JPanel(new BorderLayout());
-        painelTabela.setBorder(BorderFactory.createTitledBorder("Matrículas Cadastradas"));
-        painelTabela.add(new JScrollPane(tabelaMatriculas), BorderLayout.CENTER);
+        JSplitPane divisaoTabelas = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
+                criarPainelTabelaMatriculas(), criarPainelTabelaMensalidades());
+        divisaoTabelas.setResizeWeight(0.5);
 
         conteudo.add(formulario, BorderLayout.NORTH);
-        conteudo.add(painelTabela, BorderLayout.CENTER);
+        conteudo.add(divisaoTabelas, BorderLayout.CENTER);
 
         JButton botaoVoltar = new JButton("Voltar ao menu");
         botaoVoltar.addActionListener(e -> {
@@ -187,6 +196,79 @@ public class TelaMatriculas extends JDialog {
         conteudo.add(rodape, BorderLayout.SOUTH);
 
         setContentPane(conteudo);
+    }
+
+    private JPanel criarPainelTabelaMatriculas() {
+        modeloTabela = new DefaultTableModel(
+                new String[]{"ID", "Aluno", "Plano", "Data de início", "Data de término", "Status"}, 0
+        ) {
+            @Override
+            public boolean isCellEditable(int linha, int coluna) {
+                return false;
+            }
+        };
+
+        tabelaMatriculas = new JTable(modeloTabela);
+        tabelaMatriculas.setRowHeight(23);
+        tabelaMatriculas.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        tabelaMatriculas.setFillsViewportHeight(true);
+        tabelaMatriculas.getTableHeader().setReorderingAllowed(false);
+        tabelaMatriculas.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting() && !atualizandoTabelaMatriculas) {
+                selecionarMatricula();
+            }
+        });
+
+        botaoCancelarMatricula = new JButton("Cancelar matrícula");
+        botaoCancelarMatricula.setEnabled(false);
+        botaoCancelarMatricula.addActionListener(e -> cancelarMatriculaSelecionada());
+
+        JPanel botoes = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        botoes.add(botaoCancelarMatricula);
+
+        JPanel painel = new JPanel(new BorderLayout(0, 5));
+        painel.setBorder(BorderFactory.createTitledBorder("Matrículas Cadastradas"));
+        painel.add(new JScrollPane(tabelaMatriculas), BorderLayout.CENTER);
+        painel.add(botoes, BorderLayout.SOUTH);
+        return painel;
+    }
+
+    private JPanel criarPainelTabelaMensalidades() {
+        modeloMensalidades = new DefaultTableModel(
+                new String[]{"Parcela", "Vencimento", "Valor", "Data do pagamento", "Status"}, 0
+        ) {
+            @Override
+            public boolean isCellEditable(int linha, int coluna) {
+                return false;
+            }
+        };
+
+        tabelaMensalidades = new JTable(modeloMensalidades);
+        tabelaMensalidades.setRowHeight(23);
+        tabelaMensalidades.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        tabelaMensalidades.setFillsViewportHeight(true);
+        tabelaMensalidades.getTableHeader().setReorderingAllowed(false);
+        tabelaMensalidades.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting() && !atualizandoTabelaMensalidades) {
+                int linha = tabelaMensalidades.getSelectedRow();
+                numeroParcelaSelecionada = linha < 0 ? null
+                        : ((Number) modeloMensalidades.getValueAt(linha, 0)).intValue();
+                atualizarEstadoBotoes();
+            }
+        });
+
+        botaoPagarMensalidade = new JButton("Pagar mensalidade selecionada");
+        botaoPagarMensalidade.setEnabled(false);
+        botaoPagarMensalidade.addActionListener(e -> pagarMensalidadeSelecionada());
+
+        JPanel botoes = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        botoes.add(botaoPagarMensalidade);
+
+        JPanel painel = new JPanel(new BorderLayout(0, 5));
+        painel.setBorder(BorderFactory.createTitledBorder("Mensalidades da matrícula selecionada"));
+        painel.add(new JScrollPane(tabelaMensalidades), BorderLayout.CENTER);
+        painel.add(botoes, BorderLayout.SOUTH);
+        return painel;
     }
 
     private void cadastrarPlano() {
@@ -293,22 +375,217 @@ public class TelaMatriculas extends JDialog {
     }
 
     private void atualizarTabela() {
-        modeloTabela.setRowCount(0);
-
+        int linhaSelecionada = -1;
         DateTimeFormatter formato = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-        for (Matricula matricula : matriculaService.listarTodos()) {
-            Aluno aluno = alunoService.buscarPorId(matricula.getIdAluno());
-            Plano plano = planoDAO.buscarPorId(matricula.getIdPlano());
+        atualizandoTabelaMatriculas = true;
+        try {
+            modeloTabela.setRowCount(0);
 
-            modeloTabela.addRow(new Object[]{
-                    matricula.getId(),
-                    aluno.getNome(),
-                    plano.getNome(),
-                    matricula.getDataInicio().format(formato),
-                    matricula.getDataFim().format(formato),
-                    matricula.getStatus()
-            });
+            for (Matricula matricula : matriculaService.listarTodos()) {
+                Aluno aluno = alunoService.buscarPorId(matricula.getIdAluno());
+                Plano plano = planoDAO.buscarPorId(matricula.getIdPlano());
+
+                modeloTabela.addRow(new Object[]{
+                        matricula.getId(),
+                        aluno.getNome(),
+                        plano == null ? "Plano removido" : plano.getNome(),
+                        matricula.getDataInicio().format(formato),
+                        matricula.getDataFim().format(formato),
+                        matricula.getStatus()
+                });
+                if (idMatriculaSelecionada != null
+                        && matricula.getId() == idMatriculaSelecionada) {
+                    linhaSelecionada = modeloTabela.getRowCount() - 1;
+                }
+            }
+
+            if (linhaSelecionada >= 0) {
+                tabelaMatriculas.setRowSelectionInterval(linhaSelecionada, linhaSelecionada);
+            } else if (idMatriculaSelecionada != null) {
+                idMatriculaSelecionada = null;
+                numeroParcelaSelecionada = null;
+                tabelaMatriculas.clearSelection();
+            }
+        } finally {
+            atualizandoTabelaMatriculas = false;
+        }
+
+        atualizarTabelaMensalidades();
+    }
+
+    private void selecionarMatricula() {
+        int linha = tabelaMatriculas.getSelectedRow();
+        Integer novoId = linha < 0 ? null
+                : ((Number) modeloTabela.getValueAt(linha, 0)).intValue();
+
+        if (novoId == null || !novoId.equals(idMatriculaSelecionada)) {
+            numeroParcelaSelecionada = null;
+        }
+        idMatriculaSelecionada = novoId;
+        atualizarTabelaMensalidades();
+    }
+
+    private void atualizarTabelaMensalidades() {
+        int linhaSelecionada = -1;
+        DateTimeFormatter formatoData = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        NumberFormat formatoValor = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+
+        atualizandoTabelaMensalidades = true;
+        try {
+            modeloMensalidades.setRowCount(0);
+            if (idMatriculaSelecionada != null) {
+                Matricula matricula = matriculaService.buscarPorId(idMatriculaSelecionada);
+                for (Mensalidade mensalidade : matricula.getMensalidades()) {
+                    String status = mensalidade.estaAtrasada()
+                            ? "ATRASADA" : mensalidade.getStatus().toString();
+                    String dataPagamento = mensalidade.getDataPagamento() == null
+                            ? "—" : mensalidade.getDataPagamento().format(formatoData);
+
+                    modeloMensalidades.addRow(new Object[]{
+                            mensalidade.getNumeroParcela(),
+                            mensalidade.getDataVencimento().format(formatoData),
+                            formatoValor.format(mensalidade.getValor()),
+                            dataPagamento,
+                            status
+                    });
+                    if (numeroParcelaSelecionada != null
+                            && mensalidade.getNumeroParcela() == numeroParcelaSelecionada) {
+                        linhaSelecionada = modeloMensalidades.getRowCount() - 1;
+                    }
+                }
+            }
+
+            if (linhaSelecionada >= 0) {
+                tabelaMensalidades.setRowSelectionInterval(linhaSelecionada, linhaSelecionada);
+            } else {
+                numeroParcelaSelecionada = null;
+                tabelaMensalidades.clearSelection();
+            }
+        } finally {
+            atualizandoTabelaMensalidades = false;
+        }
+
+        atualizarEstadoBotoes();
+    }
+
+    private void atualizarEstadoBotoes() {
+        Matricula matricula = buscarMatriculaSelecionada();
+        boolean ativa = matricula != null && matricula.estaAtiva();
+        botaoCancelarMatricula.setEnabled(ativa);
+
+        Mensalidade mensalidade = buscarMensalidadeSelecionada(matricula);
+        botaoPagarMensalidade.setEnabled(ativa && mensalidade != null
+                && mensalidade.getStatus() != StatusMensalidade.PAGA);
+    }
+
+    private Matricula buscarMatriculaSelecionada() {
+        if (idMatriculaSelecionada == null) {
+            return null;
+        }
+        try {
+            return matriculaService.buscarPorId(idMatriculaSelecionada);
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    private Mensalidade buscarMensalidadeSelecionada(Matricula matricula) {
+        if (matricula == null || numeroParcelaSelecionada == null) {
+            return null;
+        }
+        for (Mensalidade mensalidade : matricula.getMensalidades()) {
+            if (mensalidade.getNumeroParcela() == numeroParcelaSelecionada) {
+                return mensalidade;
+            }
+        }
+        return null;
+    }
+
+    private void cancelarMatriculaSelecionada() {
+        Matricula matricula = buscarMatriculaSelecionada();
+        if (matricula == null) {
+            JOptionPane.showMessageDialog(this,
+                    "Selecione uma matrícula para cancelar.",
+                    "Matrícula não selecionada", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        if (!matricula.estaAtiva()) {
+            atualizarDados();
+            JOptionPane.showMessageDialog(this,
+                    "Somente matrículas ativas podem ser canceladas.",
+                    "Operação não permitida", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        Aluno aluno = alunoService.buscarPorId(matricula.getIdAluno());
+        int confirmacao = JOptionPane.showConfirmDialog(this,
+                "Confirma o cancelamento da matrícula de " + aluno.getNome() + "?",
+                "Confirmar cancelamento", JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+        if (confirmacao != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        try {
+            matriculaService.cancelar(matricula.getId());
+            atualizarDados();
+            JOptionPane.showMessageDialog(this, "Matrícula cancelada com sucesso.");
+        } catch (RuntimeException e) {
+            atualizarDados();
+            JOptionPane.showMessageDialog(this, e.getMessage(),
+                    "Não foi possível cancelar a matrícula", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void pagarMensalidadeSelecionada() {
+        Matricula matricula = buscarMatriculaSelecionada();
+        Mensalidade mensalidade = buscarMensalidadeSelecionada(matricula);
+        if (matricula == null || mensalidade == null) {
+            JOptionPane.showMessageDialog(this,
+                    "Selecione uma matrícula e uma mensalidade pendente.",
+                    "Mensalidade não selecionada", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        if (!matricula.estaAtiva()) {
+            atualizarDados();
+            JOptionPane.showMessageDialog(this,
+                    "Somente mensalidades de matrículas ativas podem ser pagas.",
+                    "Operação não permitida", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (mensalidade.getStatus() == StatusMensalidade.PAGA) {
+            atualizarTabelaMensalidades();
+            JOptionPane.showMessageDialog(this,
+                    "Esta mensalidade já está paga.",
+                    "Pagamento já registrado", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        DateTimeFormatter formato = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        String valor = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"))
+                .format(mensalidade.getValor());
+        LocalDate dataPagamento = LocalDate.now();
+        int confirmacao = JOptionPane.showConfirmDialog(this,
+                "Confirmar pagamento da parcela " + mensalidade.getNumeroParcela()
+                        + " no valor de " + valor + " em " + dataPagamento.format(formato) + "?",
+                "Confirmar pagamento", JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE);
+        if (confirmacao != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        try {
+            matriculaService.pagarMensalidade(matricula.getId(),
+                    mensalidade.getNumeroParcela(), dataPagamento);
+            atualizarDados();
+            JOptionPane.showMessageDialog(this, "Pagamento registrado com sucesso.");
+        } catch (RuntimeException e) {
+            atualizarDados();
+            JOptionPane.showMessageDialog(this, e.getMessage(),
+                    "Não foi possível registrar o pagamento", JOptionPane.ERROR_MESSAGE);
         }
     }
 }
