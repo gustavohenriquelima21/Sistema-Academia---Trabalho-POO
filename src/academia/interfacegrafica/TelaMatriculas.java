@@ -39,6 +39,7 @@ public class TelaMatriculas extends JDialog {
         this.matriculaService = matriculaService;
 
         setSize(1000, 650);
+        setUndecorated(true);
         setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(telaPrincipal);
 
@@ -158,6 +159,17 @@ public class TelaMatriculas extends JDialog {
 
         conteudo.add(formulario, BorderLayout.NORTH);
         conteudo.add(painelTabela, BorderLayout.CENTER);
+
+        JButton botaoVoltar = new JButton("Voltar ao menu");
+        botaoVoltar.addActionListener(e -> {
+            dispose();
+            getOwner().toFront();
+            getOwner().requestFocus();
+        });
+
+        JPanel rodape = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        rodape.add(botaoVoltar);
+        conteudo.add(rodape, BorderLayout.SOUTH);
 
         setContentPane(conteudo);
     }

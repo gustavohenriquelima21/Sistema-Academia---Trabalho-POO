@@ -87,6 +87,7 @@ public class TelaTreinos extends JDialog {
         this.fonteAlunos = fonteAlunos;
         this.fonteInstrutores = fonteInstrutores;
 
+        setUndecorated(true);
         setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         setSize(1280, 800);
         setLocationRelativeTo(telaPrincipal);
@@ -104,6 +105,17 @@ public class TelaTreinos extends JDialog {
         divisao.setResizeWeight(0.45);
         divisao.setDividerLocation(570);
         conteudo.add(divisao, BorderLayout.CENTER);
+        JButton botaoVoltar = new JButton("Voltar ao menu");
+        botaoVoltar.addActionListener(e -> {
+            dispose();
+            getOwner().toFront();
+            getOwner().requestFocus();
+        });
+
+        JPanel rodape = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        rodape.add(botaoVoltar);
+        conteudo.add(rodape, BorderLayout.SOUTH);
+
         setContentPane(conteudo);
 
         addWindowFocusListener(new WindowAdapter() {

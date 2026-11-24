@@ -62,6 +62,7 @@ public class TelaAlunos extends JDialog {
 		super(telaPrincipal, "Gerenciamento de Alunos", false);
 		this.alunoService = alunoService;
 
+		setUndecorated(true);
 		setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 		setSize(1100, 650);
 		setLocationRelativeTo(telaPrincipal);
@@ -81,6 +82,17 @@ public class TelaAlunos extends JDialog {
 		conteudo.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 		conteudo.add(criarFormulario(), BorderLayout.NORTH);
 		conteudo.add(criarPainelTabela(), BorderLayout.CENTER);
+		JButton botaoVoltar = new JButton("Voltar ao menu");
+		botaoVoltar.addActionListener(e -> {
+		    dispose();
+		    getOwner().toFront();
+		    getOwner().requestFocus();
+		});
+
+		JPanel rodape = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+		rodape.add(botaoVoltar);
+		conteudo.add(rodape, BorderLayout.SOUTH);
+
 		setContentPane(conteudo);
 	}
 
