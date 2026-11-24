@@ -2,6 +2,7 @@
 package academia.servico;
 
 import academia.dados.AlunoDAO;
+import academia.dados.MatriculaDAO;
 import academia.excecoes.AlunoNaoEncontradoException;
 import academia.modelo.Aluno;
 
@@ -11,9 +12,11 @@ import java.util.List;
 public class AlunoService {
 
     private final AlunoDAO alunoDAO;
+    private final MatriculaDAO matriculaDAO;
 
     public AlunoService() {
         this.alunoDAO = new AlunoDAO();
+        this.matriculaDAO = new MatriculaDAO();
     }
 
     public Aluno cadastrar(String nome, String cpf,
@@ -109,6 +112,11 @@ public class AlunoService {
 
     public void excluir(int id) {
         buscarPorId(id);
+        if (!matriculaDAO.listarPorAluno(id).isEmpty()) {
+            throw new IllegalStateException(
+                "Não é possível excluir este aluno porque ele possui matrículas vinculadas."
+            );
+        }
         alunoDAO.excluir(id);
     }
 
