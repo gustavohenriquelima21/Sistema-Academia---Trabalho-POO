@@ -2,7 +2,7 @@ package academia.modelo;
 
 import java.io.Serializable;
 
-public abstract class Exercicio implements Serializable {
+public abstract class Exercicio implements Serializable, DuracaoCalculavel {
 
     private static final long serialVersionUID = 1L;
 
