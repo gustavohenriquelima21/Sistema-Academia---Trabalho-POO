@@ -5,6 +5,7 @@ import academia.servico.AlunoService;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -19,19 +20,21 @@ import javax.swing.table.TableRowSorter;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
 import java.util.List;
 
-public class TelaAlunos extends JFrame {
+public class TelaAlunos extends JDialog {
 
 	private static final DateTimeFormatter FORMATO_DATA =
 			DateTimeFormatter.ofPattern("dd/MM/uuuu")
 					.withResolverStyle(ResolverStyle.STRICT);
 
-	private final AlunoService alunoService = new AlunoService();
+	private final AlunoService alunoService;
 
 	private final JTextField campoNome = new JTextField();
 	private final JTextField campoCpf = new JTextField();
@@ -53,16 +56,24 @@ public class TelaAlunos extends JFrame {
 			new TableRowSorter<>(modeloTabela);
 
 	private Integer idAlunoSelecionado;
+	private boolean atualizandoTabela;
 
-	public TelaAlunos() {
-		super("Gerenciamento de Alunos");
+	public TelaAlunos(JFrame telaPrincipal, AlunoService alunoService) {
+		super(telaPrincipal, "Gerenciamento de Alunos", false);
+		this.alunoService = alunoService;
 
-		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 		setSize(1100, 650);
-		setLocationRelativeTo(null);
+		setLocationRelativeTo(telaPrincipal);
 
 		criarComponentes();
-		atualizarTabela();
+
+		addWindowFocusListener(new WindowAdapter() {
+			@Override
+			public void windowGainedFocus(WindowEvent e) {
+				atualizarTabela();
+			}
+		});
 	}
 
 	private void criarComponentes() {
@@ -115,7 +126,7 @@ public class TelaAlunos extends JFrame {
 		tabelaAlunos.getTableHeader().setReorderingAllowed(false);
 		tabelaAlunos.setRowSorter(ordenadorTabela);
 		tabelaAlunos.getSelectionModel().addListSelectionListener(e -> {
-			if (!e.getValueIsAdjusting()) {
+			if (!e.getValueIsAdjusting() && !atualizandoTabela) {
 				selecionarAluno();
 			}
 		});
@@ -157,19 +168,38 @@ public class TelaAlunos extends JFrame {
 	}
 
 	private void atualizarTabela() {
-		modeloTabela.setRowCount(0);
-
 		List<Aluno> alunos = alunoService.listarTodos();
-		for (Aluno aluno : alunos) {
-			modeloTabela.addRow(new Object[]{
-					aluno.getId(),
-					aluno.getNome(),
-					aluno.getCpf(),
-					aluno.getTelefone(),
-					aluno.getEndereco(),
-					aluno.getDataNascimento().format(FORMATO_DATA),
-					aluno.isAtivo() ? "Ativo" : "Inativo"
-			});
+		atualizandoTabela = true;
+		try {
+			modeloTabela.setRowCount(0);
+			int linhaSelecionada = -1;
+
+			for (Aluno aluno : alunos) {
+				modeloTabela.addRow(new Object[]{
+						aluno.getId(),
+						aluno.getNome(),
+						aluno.getCpf(),
+						aluno.getTelefone(),
+						aluno.getEndereco(),
+						aluno.getDataNascimento().format(FORMATO_DATA),
+						aluno.isAtivo() ? "Ativo" : "Inativo"
+				});
+				if (idAlunoSelecionado != null && aluno.getId() == idAlunoSelecionado) {
+					linhaSelecionada = modeloTabela.getRowCount() - 1;
+				}
+			}
+
+			// Restaura a seleção respeitando a busca e a ordenação, sem sobrescrever a edição.
+			if (linhaSelecionada >= 0) {
+				int linhaVisivel = tabelaAlunos.convertRowIndexToView(linhaSelecionada);
+				if (linhaVisivel >= 0) {
+					tabelaAlunos.setRowSelectionInterval(linhaVisivel, linhaVisivel);
+				}
+			} else if (idAlunoSelecionado != null) {
+				limparFormulario();
+			}
+		} finally {
+			atualizandoTabela = false;
 		}
 	}
 
@@ -259,12 +289,5 @@ public class TelaAlunos extends JFrame {
 		campoTelefone.setText("");
 		campoEndereco.setText("");
 		campoDataNascimento.setText("");
-	}
-
-	public static void main(String[] args) {
-		javax.swing.SwingUtilities.invokeLater(() -> {
-			TelaAlunos tela = new TelaAlunos();
-			tela.setVisible(true);
-		});
 	}
 }

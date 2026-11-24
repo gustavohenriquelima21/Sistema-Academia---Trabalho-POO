@@ -1,1 +1,94 @@
 package academia.interfacegrafica;
+
+import academia.dados.PlanoDAO;
+import academia.servico.AlunoService;
+import academia.servico.InstrutorService;
+import academia.servico.MatriculaService;
+import academia.servico.TreinoService;
+
+import javax.swing.*;
+import java.awt.BorderLayout;
+import java.awt.GridLayout;
+
+public class TelaPrincipal extends JFrame {
+
+    private final AlunoService alunoService = new AlunoService();
+    private final PlanoDAO planoDAO = new PlanoDAO();
+    private final MatriculaService matriculaService = new MatriculaService();
+    private final InstrutorService instrutorService = new InstrutorService();
+    private final TreinoService treinoService = new TreinoService();
+
+    private TelaAlunos telaAlunos;
+    private TelaMatriculas telaMatriculas;
+    private TelaTreinos telaTreinos;
+
+    public TelaPrincipal() {
+        super("Sistema de Academia - Menu Principal");
+
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(420, 290);
+        setLocationRelativeTo(null);
+
+        criarComponentes();
+    }
+
+    private void criarComponentes() {
+        JPanel conteudo = new JPanel(new BorderLayout(10, 20));
+        conteudo.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        conteudo.add(new JLabel("Selecione uma opção:", SwingConstants.CENTER),
+                BorderLayout.NORTH);
+
+        JPanel menu = new JPanel(new GridLayout(3, 1, 10, 10));
+
+        JButton botaoAlunos = new JButton("Alunos");
+        botaoAlunos.addActionListener(e -> abrirAlunos());
+        menu.add(botaoAlunos);
+
+        JButton botaoMatriculas = new JButton("Matrículas");
+        botaoMatriculas.addActionListener(e -> abrirMatriculas());
+        menu.add(botaoMatriculas);
+
+        JButton botaoTreinos = new JButton("Treinos");
+        botaoTreinos.addActionListener(e -> abrirTreinos());
+        menu.add(botaoTreinos);
+
+        conteudo.add(menu, BorderLayout.CENTER);
+        setContentPane(conteudo);
+    }
+
+    private void abrirAlunos() {
+        if (telaAlunos == null || !telaAlunos.isDisplayable()) {
+            telaAlunos = new TelaAlunos(this, alunoService);
+        }
+
+        telaAlunos.setVisible(true);
+        telaAlunos.toFront();
+        telaAlunos.requestFocus();
+    }
+
+    private void abrirMatriculas() {
+        if (telaMatriculas == null || !telaMatriculas.isDisplayable()) {
+            telaMatriculas = new TelaMatriculas(
+                    this, alunoService, planoDAO, matriculaService);
+        }
+
+        telaMatriculas.setVisible(true);
+        telaMatriculas.toFront();
+        telaMatriculas.requestFocus();
+    }
+
+    private void abrirTreinos() {
+        if (telaTreinos == null || !telaTreinos.isDisplayable()) {
+            telaTreinos = new TelaTreinos(
+                    this, treinoService, alunoService::listarTodos, instrutorService::listarTodos);
+        }
+
+        telaTreinos.setVisible(true);
+        telaTreinos.toFront();
+        telaTreinos.requestFocus();
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new TelaPrincipal().setVisible(true));
+    }
+}

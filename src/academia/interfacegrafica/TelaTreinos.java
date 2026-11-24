@@ -14,6 +14,7 @@ import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
@@ -38,7 +39,7 @@ import java.awt.event.WindowEvent;
 import java.util.List;
 import java.util.function.Supplier;
 
-public class TelaTreinos extends JFrame {
+public class TelaTreinos extends JDialog {
 
     private static final String[] OBJETIVOS = {
             "Hipertrofia", "Emagrecimento", "Condicionamento", "Força", "Resistência", "Reabilitação"};
@@ -78,17 +79,17 @@ public class TelaTreinos extends JFrame {
     private Integer idTreinoSelecionado;
     private boolean atualizandoTabela;
 
-    public TelaTreinos(TreinoService treinoService,
+    public TelaTreinos(JFrame telaPrincipal, TreinoService treinoService,
                        Supplier<List<Aluno>> fonteAlunos,
                        Supplier<List<Instrutor>> fonteInstrutores) {
-        super("Gerenciamento de Treinos");
+        super(telaPrincipal, "Gerenciamento de Treinos", false);
         this.treinoService = treinoService;
         this.fonteAlunos = fonteAlunos;
         this.fonteInstrutores = fonteInstrutores;
 
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         setSize(1280, 800);
-        setLocationRelativeTo(null);
+        setLocationRelativeTo(telaPrincipal);
 
         comboObjetivo.setEditable(true);
         comboAluno.setRenderer(new RenderizadorPessoa());
@@ -105,13 +106,15 @@ public class TelaTreinos extends JFrame {
         conteudo.add(divisao, BorderLayout.CENTER);
         setContentPane(conteudo);
 
-        addWindowListener(new WindowAdapter() {
+        addWindowFocusListener(new WindowAdapter() {
             @Override
-            public void windowActivated(WindowEvent e) {
-                recarregarPessoas();
+            public void windowGainedFocus(WindowEvent e) {
+                atualizarDados();
             }
         });
+    }
 
+    private void atualizarDados() {
         recarregarPessoas();
         atualizarTabelaTreinos();
         atualizarEstadoExercicios();
