@@ -15,6 +15,7 @@ public class TelaPrincipal extends JFrame {
     private final TreinoService treinoService;
 
     private TelaAlunos telaAlunos;
+    private TelaInstrutores telaInstrutores;
     private TelaMatriculas telaMatriculas;
     private TelaTreinos telaTreinos;
 
@@ -29,7 +30,7 @@ public class TelaPrincipal extends JFrame {
         this.treinoService = treinoService;
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(420, 290);
+        setSize(420, 350);
         setLocationRelativeTo(null);
 
         criarComponentes();
@@ -41,11 +42,15 @@ public class TelaPrincipal extends JFrame {
         conteudo.add(new JLabel("Selecione uma opção:", SwingConstants.CENTER),
                 BorderLayout.NORTH);
 
-        JPanel menu = new JPanel(new GridLayout(3, 1, 10, 10));
+        JPanel menu = new JPanel(new GridLayout(4, 1, 10, 10));
 
         JButton botaoAlunos = new JButton("Alunos");
         botaoAlunos.addActionListener(e -> abrirAlunos());
         menu.add(botaoAlunos);
+
+        JButton botaoInstrutores = new JButton("Instrutores");
+        botaoInstrutores.addActionListener(e -> abrirInstrutores());
+        menu.add(botaoInstrutores);
 
         JButton botaoMatriculas = new JButton("Matrículas");
         botaoMatriculas.addActionListener(e -> abrirMatriculas());
@@ -67,6 +72,16 @@ public class TelaPrincipal extends JFrame {
         telaAlunos.setVisible(true);
         telaAlunos.toFront();
         telaAlunos.requestFocus();
+    }
+
+    private void abrirInstrutores() {
+        if (telaInstrutores == null || !telaInstrutores.isDisplayable()) {
+            telaInstrutores = new TelaInstrutores(this, instrutorService);
+        }
+
+        telaInstrutores.setVisible(true);
+        telaInstrutores.toFront();
+        telaInstrutores.requestFocus();
     }
 
     private void abrirMatriculas() {
