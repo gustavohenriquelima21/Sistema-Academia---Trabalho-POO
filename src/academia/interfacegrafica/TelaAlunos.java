@@ -2,6 +2,7 @@ package academia.interfacegrafica;
 
 import academia.modelo.Aluno;
 import academia.servico.AlunoService;
+import academia.servico.TreinoService;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -35,6 +36,7 @@ public class TelaAlunos extends JDialog {
 					.withResolverStyle(ResolverStyle.STRICT);
 
 	private final AlunoService alunoService;
+	private final TreinoService treinoService;
 
 	private final JTextField campoNome = new JTextField();
 	private final JTextField campoCpf = new JTextField();
@@ -58,9 +60,10 @@ public class TelaAlunos extends JDialog {
 	private Integer idAlunoSelecionado;
 	private boolean atualizandoTabela;
 
-	public TelaAlunos(JFrame telaPrincipal, AlunoService alunoService) {
+	public TelaAlunos(JFrame telaPrincipal, AlunoService alunoService, TreinoService treinoService) {
 		super(telaPrincipal, "Gerenciamento de Alunos", false);
 		this.alunoService = alunoService;
+		this.treinoService = treinoService;
 
 		setUndecorated(true);
 		setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
@@ -282,6 +285,12 @@ public class TelaAlunos extends JDialog {
 		}
 
 		try {
+			if (treinoService.possuiTreinoParaAluno(idAlunoSelecionado)) {
+				JOptionPane.showMessageDialog(this,
+						"Não é possível excluir este aluno porque há treinos vinculados.",
+						"Exclusão não permitida", JOptionPane.WARNING_MESSAGE);
+				return;
+			}
 			alunoService.excluir(idAlunoSelecionado);
 			atualizarTabela();
 			limparFormulario();
