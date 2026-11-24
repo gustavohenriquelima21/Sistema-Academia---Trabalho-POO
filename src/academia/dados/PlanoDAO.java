@@ -136,6 +136,12 @@ public class PlanoDAO{
     }
 
     public void excluir(int id){
+        if (!new MatriculaDAO().listarTodos().stream()
+                .noneMatch(matricula -> matricula.getIdPlano() == id)) {
+            throw new IllegalStateException(
+                "Não é possível excluir este plano porque ele está vinculado a matrículas."
+            );
+        }
         List<Plano> planos = listarTodos();
 
         planos.removeIf(plano -> plano.getId() == id);
@@ -158,7 +164,7 @@ public class PlanoDAO{
         }
 
         try{
-            Files.write(arquivo, linhas, StandardCharsets.UTF_8);
+            ArquivoTexto.salvarAtomico(arquivo, linhas);
 
         } catch(IOException e){
             throw new IllegalStateException(
