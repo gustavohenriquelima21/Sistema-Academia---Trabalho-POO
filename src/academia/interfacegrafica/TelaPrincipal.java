@@ -16,6 +16,7 @@ public class TelaPrincipal extends JFrame {
 
     private TelaAlunos telaAlunos;
     private TelaInstrutores telaInstrutores;
+    private TelaPlanos telaPlanos;
     private TelaMatriculas telaMatriculas;
     private TelaTreinos telaTreinos;
 
@@ -42,7 +43,7 @@ public class TelaPrincipal extends JFrame {
         conteudo.add(new JLabel("Selecione uma opção:", SwingConstants.CENTER),
                 BorderLayout.NORTH);
 
-        JPanel menu = new JPanel(new GridLayout(4, 1, 10, 10));
+        JPanel menu = new JPanel(new GridLayout(5, 1, 10, 10));
 
         JButton botaoAlunos = new JButton("Alunos");
         botaoAlunos.addActionListener(e -> abrirAlunos());
@@ -51,6 +52,10 @@ public class TelaPrincipal extends JFrame {
         JButton botaoInstrutores = new JButton("Instrutores");
         botaoInstrutores.addActionListener(e -> abrirInstrutores());
         menu.add(botaoInstrutores);
+
+        JButton botaoPlanos = new JButton("Planos");
+        botaoPlanos.addActionListener(e -> abrirPlanos());
+        menu.add(botaoPlanos);
 
         JButton botaoMatriculas = new JButton("Matrículas");
         botaoMatriculas.addActionListener(e -> abrirMatriculas());
@@ -82,6 +87,15 @@ public class TelaPrincipal extends JFrame {
         telaInstrutores.setVisible(true);
         telaInstrutores.toFront();
         telaInstrutores.requestFocus();
+    }
+
+    private void abrirPlanos() {
+        if (telaPlanos == null || !telaPlanos.isDisplayable()) {
+            telaPlanos = new TelaPlanos(this, planoDAO);
+        }
+        telaPlanos.setVisible(true);
+        telaPlanos.toFront();
+        telaPlanos.requestFocus();
     }
 
     private void abrirMatriculas() {
