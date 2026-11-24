@@ -298,6 +298,7 @@ public class TelaTreinos extends JDialog {
 
         List<Aluno> alunos = fonteAlunos.get();
         List<Instrutor> instrutores = fonteInstrutores.get();
+        treinoService.sincronizarPessoas(alunos, instrutores);
 
         DefaultComboBoxModel<Aluno> modeloAlunos = new DefaultComboBoxModel<>();
         for (Aluno aluno : alunos) {
@@ -441,7 +442,7 @@ public class TelaTreinos extends JDialog {
                 idTreinoSelecionado = treino.getId();
                 mostrarInformacao("Treino cadastrado com sucesso! Agora adicione os exercícios.");
             } else {
-                treinoService.atualizarTreino(idTreinoSelecionado, nome, objetivo, instrutor);
+                treinoService.atualizarTreino(idTreinoSelecionado, nome, objetivo, instrutor, aluno);
                 mostrarInformacao("Treino atualizado com sucesso!");
             }
             atualizarTabelaTreinos();
