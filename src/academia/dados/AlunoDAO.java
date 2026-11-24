@@ -180,7 +180,7 @@ public class AlunoDAO {
         }
 
         try {
-            Files.write(arquivo, linhas, StandardCharsets.UTF_8);
+            ArquivoTexto.salvarAtomico(arquivo, linhas);
 
         } catch (IOException e) {
             throw new IllegalStateException(
