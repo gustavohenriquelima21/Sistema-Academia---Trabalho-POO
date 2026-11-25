@@ -3,6 +3,8 @@ package academia.modelo;
 
 public class Instrutor extends Pessoa {
 
+    private static final long serialVersionUID = -140610321401079197L;
+
     private String especialidade;
     private String cref;
 

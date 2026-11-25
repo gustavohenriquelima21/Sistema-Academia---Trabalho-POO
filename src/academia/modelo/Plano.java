@@ -1,6 +1,6 @@
 package academia.modelo;
 
-public class Plano{
+public class Plano implements Identificavel {
     private int id;
     private String nome;
     private double valorMensal;
@@ -14,6 +14,7 @@ public class Plano{
         this.duracaoMeses=duracaoMeses;
         this.ativo = true;
     }
+    @Override
     public int getId(){
         return id;
     }
@@ -54,6 +55,6 @@ public class Plano{
     
     @Override
     public String toString(){
-        return nome + " - R$ " + String.format("%.2f", valorMensal) + " (" + duracaoMeses + " meses";
+        return nome + " - R$ " + String.format("%.2f", valorMensal) + " (" + duracaoMeses + " meses)";
     }
-}
+}

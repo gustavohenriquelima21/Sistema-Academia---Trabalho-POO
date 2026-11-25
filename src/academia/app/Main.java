@@ -1,9 +1,9 @@
 package academia.app;
-import academia.dados.PlanoDAO;
 import academia.interfacegrafica.TelaPrincipal;
 import academia.servico.AlunoService;
 import academia.servico.InstrutorService;
 import academia.servico.MatriculaService;
+import academia.servico.PlanoService;
 import academia.servico.TreinoService;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
@@ -27,12 +27,15 @@ public final class Main {
         try {
             TreinoService treinoService = new TreinoService();
             AlunoService alunoService = new AlunoService(treinoService);
-            PlanoDAO planoDAO = new PlanoDAO();
-            MatriculaService matriculaService = new MatriculaService();
+            PlanoService planoService = new PlanoService();
+            MatriculaService matriculaService = new MatriculaService(alunoService, planoService);
             InstrutorService instrutorService = new InstrutorService(treinoService);
 
+            // Matrículas cuja data de término já passou deixam de bloquear nova matrícula do aluno.
+            matriculaService.encerrarVencidas();
+
             TelaPrincipal telaPrincipal = new TelaPrincipal(
-                    alunoService, planoDAO, matriculaService, instrutorService, treinoService);
+                    alunoService, planoService, matriculaService, instrutorService, treinoService);
             telaPrincipal.setVisible(true);
             if (treinoService.getAvisoCarga() != null) {
                 JOptionPane.showMessageDialog(telaPrincipal, treinoService.getAvisoCarga(),

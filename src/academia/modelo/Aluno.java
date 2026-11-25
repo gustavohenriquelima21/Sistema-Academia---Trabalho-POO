@@ -5,6 +5,8 @@ import java.time.LocalDate;
 
 public class Aluno extends Pessoa {
 
+    private static final long serialVersionUID = 7297869278803261726L;
+
     private LocalDate dataNascimento;
     private boolean ativo;
 

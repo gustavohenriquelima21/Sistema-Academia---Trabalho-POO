@@ -38,6 +38,7 @@ public abstract class Exercicio implements Serializable, DuracaoCalculavel {
         return nome + " - " + getDetalhes();
     }
 
+    @Override
     public abstract double calcularDuracaoMinutos();
 
     @Override

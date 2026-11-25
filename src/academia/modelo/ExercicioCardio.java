@@ -43,4 +43,4 @@ public class ExercicioCardio extends Exercicio {
     public double calcularDuracaoMinutos() {
         return tempoMinutos;
     }
-}
+}

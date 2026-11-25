@@ -1,9 +1,9 @@
 package academia.servico;
 
 import academia.dados.MatriculaDAO;
-import academia.dados.PlanoDAO;
 import academia.excecoes.MatriculaInvalidaException;
 import academia.modelo.Aluno;
+import academia.modelo.FormaPagamento;
 import academia.modelo.Matricula;
 import academia.modelo.Mensalidade;
 import academia.modelo.Plano;
@@ -15,13 +15,17 @@ import java.util.List;
 public class MatriculaService {
 
     private final MatriculaDAO matriculaDAO;
-    private final PlanoDAO planoDAO;
+    private final PlanoService planoService;
     private final AlunoService alunoService;
 
     public MatriculaService() {
+        this(new AlunoService(), new PlanoService());
+    }
+
+    public MatriculaService(AlunoService alunoService, PlanoService planoService) {
         this.matriculaDAO = new MatriculaDAO();
-        this.planoDAO = new PlanoDAO();
-        this.alunoService = new AlunoService();
+        this.alunoService = alunoService;
+        this.planoService = planoService;
     }
 
     public Matricula matricular(int idAluno, int idPlano,
@@ -42,13 +46,8 @@ public class MatriculaService {
             );
         }
 
-        Plano plano = planoDAO.buscarPorId(idPlano);
-
-        if (plano == null) {
-            throw new MatriculaInvalidaException(
-                "Plano com ID " + idPlano + " não encontrado."
-            );
-        }
+        // Lança PlanoNaoEncontradoException se não existir
+        Plano plano = planoService.buscarPorId(idPlano);
 
         if (!plano.isAtivo()) {
             throw new MatriculaInvalidaException(
@@ -109,8 +108,8 @@ public class MatriculaService {
         matriculaDAO.atualizar(matricula);
     }
 
-    public void pagarMensalidade(int idMatricula, int numeroParcela,
-                                 LocalDate dataPagamento) {
+    public Mensalidade pagarMensalidade(int idMatricula, int numeroParcela,
+                                        LocalDate dataPagamento, FormaPagamento forma) {
 
         Matricula matricula = buscarPorId(idMatricula);
 
@@ -136,12 +135,13 @@ public class MatriculaService {
         }
 
         try {
-            alvo.pagar(dataPagamento);
+            alvo.pagar(dataPagamento, forma);
         } catch (IllegalStateException | IllegalArgumentException e) {
             throw new MatriculaInvalidaException(e.getMessage());
         }
 
         matriculaDAO.atualizar(matricula);
+        return alvo;
     }
 
     /**
@@ -163,4 +163,4 @@ public class MatriculaService {
 
         return encerradas;
     }
-}
+}

@@ -116,15 +116,18 @@ public class TelaAlunos extends JDialog {
 
 		JButton botaoNovo = new JButton("Novo");
 		JButton botaoSalvar = new JButton("Salvar");
+		JButton botaoStatus = new JButton("Ativar/Inativar");
 		JButton botaoExcluir = new JButton("Excluir");
 
 		botaoNovo.addActionListener(e -> limparFormulario());
 		botaoSalvar.addActionListener(e -> salvarAluno());
+		botaoStatus.addActionListener(e -> alternarStatusAluno());
 		botaoExcluir.addActionListener(e -> excluirAluno());
 
 		JPanel botoes = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
 		botoes.add(botaoNovo);
 		botoes.add(botaoSalvar);
+		botoes.add(botaoStatus);
 		botoes.add(botaoExcluir);
 
 		JPanel painel = new JPanel(new BorderLayout(0, 10));
@@ -268,6 +271,24 @@ public class TelaAlunos extends JDialog {
 		} catch (RuntimeException e) {
 			JOptionPane.showMessageDialog(this, e.getMessage(),
 					"Não foi possível salvar o aluno", JOptionPane.ERROR_MESSAGE);
+		}
+	}
+
+	private void alternarStatusAluno() {
+		if (idAlunoSelecionado == null) {
+			JOptionPane.showMessageDialog(this, "Selecione um aluno.");
+			return;
+		}
+		try {
+			Aluno aluno = alunoService.buscarPorId(idAlunoSelecionado);
+			boolean novoStatus = !aluno.isAtivo();
+			alunoService.alterarStatus(aluno.getId(), novoStatus);
+			atualizarTabela();
+			JOptionPane.showMessageDialog(this,
+					"Aluno " + (novoStatus ? "ativado" : "inativado") + " com sucesso.");
+		} catch (RuntimeException e) {
+			JOptionPane.showMessageDialog(this, e.getMessage(),
+					"Não foi possível alterar o status", JOptionPane.ERROR_MESSAGE);
 		}
 	}
 

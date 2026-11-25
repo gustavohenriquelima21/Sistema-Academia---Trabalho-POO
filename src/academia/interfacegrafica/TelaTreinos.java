@@ -89,7 +89,11 @@ public class TelaTreinos extends JDialog {
 
         setUndecorated(true);
         setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-        setSize(1280, 800);
+        // Limita ao tamanho útil da tela: a janela não tem barra de título (undecorated)
+        // e, em projetores 1366x768, o botão "Voltar ao menu" ficaria fora da tela.
+        java.awt.Rectangle areaUtil = java.awt.GraphicsEnvironment
+                .getLocalGraphicsEnvironment().getMaximumWindowBounds();
+        setSize(Math.min(1280, areaUtil.width - 20), Math.min(800, areaUtil.height - 20));
         setLocationRelativeTo(telaPrincipal);
 
         comboObjetivo.setEditable(true);
@@ -103,7 +107,7 @@ public class TelaTreinos extends JDialog {
 
         JSplitPane divisao = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, criarPainelListaTreinos(), criarPainelExercicios());
         divisao.setResizeWeight(0.45);
-        divisao.setDividerLocation(570);
+        divisao.setDividerLocation(Math.min(570, getWidth() * 45 / 100));
         conteudo.add(divisao, BorderLayout.CENTER);
         JButton botaoVoltar = new JButton("Voltar ao menu");
         botaoVoltar.addActionListener(e -> {

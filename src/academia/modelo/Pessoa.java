@@ -1,7 +1,11 @@
 
 package academia.modelo;
 
-public abstract class Pessoa implements java.io.Serializable {
+public abstract class Pessoa implements java.io.Serializable, Identificavel {
+
+    // Valor fixo: igual ao calculado pelo javac para a versão anterior da classe,
+    // mantendo compatível o arquivo dados/treinos.dat já existente.
+    private static final long serialVersionUID = 2390383606392977187L;
 
     private int id;
     private String nome;
@@ -18,6 +22,7 @@ public abstract class Pessoa implements java.io.Serializable {
         this.endereco = endereco;
     }
 
+    @Override
     public int getId() {
         return id;
     }

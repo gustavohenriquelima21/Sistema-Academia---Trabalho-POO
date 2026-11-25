@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class Treino implements Serializable {
+public class Treino implements Serializable, Identificavel, DuracaoCalculavel {
 
     private static final long serialVersionUID = 1L;
 
@@ -56,14 +56,25 @@ public class Treino implements Serializable {
         return exercicios.size();
     }
 
-    public double calcularDuracaoTotal() {
+    /**
+     * Duração do treino = soma das durações dos exercícios. Cada exercício
+     * calcula a própria duração de forma diferente (polimorfismo): a chamada
+     * abaixo não precisa saber se é musculação ou cardio.
+     */
+    @Override
+    public double calcularDuracaoMinutos() {
         double total = 0;
-        for (Exercicio exercicio : exercicios) {
+        for (DuracaoCalculavel exercicio : exercicios) {
             total += exercicio.calcularDuracaoMinutos();
         }
         return total;
     }
 
+    public double calcularDuracaoTotal() {
+        return calcularDuracaoMinutos();
+    }
+
+    @Override
     public int getId() {
         return id;
     }
@@ -112,4 +123,4 @@ public class Treino implements Serializable {
     public String toString() {
         return nome + " - " + aluno.getNome() + " (Instrutor: " + instrutor.getNome() + ")";
     }
-}
+}

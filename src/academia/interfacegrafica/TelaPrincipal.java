@@ -1,15 +1,15 @@
 package academia.interfacegrafica;
-import academia.dados.PlanoDAO;
 import academia.servico.AlunoService;
 import academia.servico.InstrutorService;
 import academia.servico.MatriculaService;
+import academia.servico.PlanoService;
 import academia.servico.TreinoService;
 import javax.swing.*;
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
 public class TelaPrincipal extends JFrame {
     private final AlunoService alunoService;
-    private final PlanoDAO planoDAO;
+    private final PlanoService planoService;
     private final MatriculaService matriculaService;
     private final InstrutorService instrutorService;
     private final TreinoService treinoService;
@@ -20,12 +20,12 @@ public class TelaPrincipal extends JFrame {
     private TelaMatriculas telaMatriculas;
     private TelaTreinos telaTreinos;
 
-    public TelaPrincipal(AlunoService alunoService, PlanoDAO planoDAO,
+    public TelaPrincipal(AlunoService alunoService, PlanoService planoService,
                          MatriculaService matriculaService, InstrutorService instrutorService,
                          TreinoService treinoService) {
         super("Sistema de Academia - Menu Principal");
         this.alunoService = alunoService;
-        this.planoDAO = planoDAO;
+        this.planoService = planoService;
         this.matriculaService = matriculaService;
         this.instrutorService = instrutorService;
         this.treinoService = treinoService;
@@ -91,7 +91,7 @@ public class TelaPrincipal extends JFrame {
 
     private void abrirPlanos() {
         if (telaPlanos == null || !telaPlanos.isDisplayable()) {
-            telaPlanos = new TelaPlanos(this, planoDAO);
+            telaPlanos = new TelaPlanos(this, planoService);
         }
         telaPlanos.setVisible(true);
         telaPlanos.toFront();
@@ -101,7 +101,7 @@ public class TelaPrincipal extends JFrame {
     private void abrirMatriculas() {
         if (telaMatriculas == null || !telaMatriculas.isDisplayable()) {
             telaMatriculas = new TelaMatriculas(
-                    this, alunoService, planoDAO, matriculaService);
+                    this, alunoService, planoService, matriculaService);
         }
 
         telaMatriculas.setVisible(true);

@@ -1,7 +1,7 @@
 package academia.interfacegrafica;
 
-import academia.dados.PlanoDAO;
 import academia.modelo.Plano;
+import academia.servico.PlanoService;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -10,21 +10,24 @@ import java.util.List;
 import java.util.Locale;
 
 public class TelaPlanos extends JDialog {
-    private final PlanoDAO planoDAO;
+    private static final long serialVersionUID = 1L;
+
+    private final transient PlanoService planoService;
     private final JTextField campoNome = new JTextField();
     private final JTextField campoValor = new JTextField();
     private final JTextField campoDuracao = new JTextField();
     private final DefaultTableModel modelo = new DefaultTableModel(
             new String[]{"ID", "Nome", "Valor mensal", "Duração (meses)", "Total", "Status"}, 0) {
+        private static final long serialVersionUID = 1L;
         @Override public boolean isCellEditable(int row, int column) { return false; }
     };
     private final JTable tabela = new JTable(modelo);
     private Integer idSelecionado;
     private boolean atualizando;
 
-    public TelaPlanos(JFrame owner, PlanoDAO planoDAO) {
+    public TelaPlanos(JFrame owner, PlanoService planoService) {
         super(owner, "Gerenciamento de Planos", false);
-        this.planoDAO = planoDAO;
+        this.planoService = planoService;
         setUndecorated(true);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setSize(1000, 650);
@@ -50,12 +53,14 @@ public class TelaPlanos extends JDialog {
 
         JButton novo = new JButton("Novo");
         JButton salvar = new JButton("Salvar");
+        JButton alternarStatus = new JButton("Ativar/Inativar");
         JButton excluir = new JButton("Excluir");
         novo.addActionListener(e -> limparFormulario());
         salvar.addActionListener(e -> salvarPlano());
+        alternarStatus.addActionListener(e -> alternarStatusPlano());
         excluir.addActionListener(e -> excluirPlano());
         JPanel botoes = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        botoes.add(novo); botoes.add(salvar); botoes.add(excluir);
+        botoes.add(novo); botoes.add(salvar); botoes.add(alternarStatus); botoes.add(excluir);
         formulario.add(botoes, BorderLayout.SOUTH);
 
         tabela.setRowHeight(24);
@@ -84,7 +89,7 @@ public class TelaPlanos extends JDialog {
         atualizando = true;
         try {
             modelo.setRowCount(0);
-            List<Plano> planos = planoDAO.listarTodos();
+            List<Plano> planos = planoService.listarTodos();
             for (Plano plano : planos) {
                 modelo.addRow(new Object[]{plano.getId(), plano.getNome(),
                         String.format(new Locale("pt", "BR"), "R$ %.2f", plano.getValorMensal()),
@@ -102,32 +107,51 @@ public class TelaPlanos extends JDialog {
         int row = tabela.getSelectedRow();
         if (row < 0) return;
         idSelecionado = ((Number) modelo.getValueAt(row, 0)).intValue();
-        Plano plano = planoDAO.buscarPorId(idSelecionado);
-        if (plano == null) { limparFormulario(); return; }
-        campoNome.setText(plano.getNome());
-        campoValor.setText(String.format(Locale.US, "%.2f", plano.getValorMensal()));
-        campoDuracao.setText(String.valueOf(plano.getDuracaoMeses()));
+        try {
+            Plano plano = planoService.buscarPorId(idSelecionado);
+            campoNome.setText(plano.getNome());
+            campoValor.setText(String.format(Locale.US, "%.2f", plano.getValorMensal()));
+            campoDuracao.setText(String.valueOf(plano.getDuracaoMeses()));
+        } catch (RuntimeException e) {
+            limparFormulario();
+        }
     }
 
     private void salvarPlano() {
+        double valor;
+        int duracao;
         try {
-            String nome = campoNome.getText().trim();
-            double valor = Double.parseDouble(campoValor.getText().trim().replace(',', '.'));
-            int duracao = Integer.parseInt(campoDuracao.getText().trim());
-            if (nome.isEmpty() || !Double.isFinite(valor) || valor < 0 || duracao <= 0)
-                throw new IllegalArgumentException("Informe nome, valor válido e duração maior que zero.");
-            Plano plano = idSelecionado == null ? new Plano(planoDAO.proximoId(), nome, valor, duracao)
-                    : planoDAO.buscarPorId(idSelecionado);
-            if (plano == null) throw new IllegalStateException("O plano selecionado não existe mais.");
-            plano.setNome(nome); plano.setValorMensal(valor); plano.setDuracaoMeses(duracao);
-            if (idSelecionado == null) planoDAO.inserir(plano); else planoDAO.atualizar(plano);
-            idSelecionado = plano.getId();
+            valor = Double.parseDouble(campoValor.getText().trim().replace(',', '.'));
+            duracao = Integer.parseInt(campoDuracao.getText().trim());
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Informe o valor mensal e a duração usando números válidos.",
+                    "Dados inválidos", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        try {
+            if (idSelecionado == null) {
+                idSelecionado = planoService.cadastrar(campoNome.getText(), valor, duracao).getId();
+            } else {
+                planoService.atualizar(idSelecionado, campoNome.getText(), valor, duracao);
+            }
             atualizarTabela();
             JOptionPane.showMessageDialog(this, "Plano salvo com sucesso.");
         } catch (IllegalArgumentException e) {
-            JOptionPane.showMessageDialog(this, e.getMessage() == null ? "Informe valores numéricos válidos." : e.getMessage(), "Dados inválidos", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, e.getMessage(), "Dados inválidos", JOptionPane.WARNING_MESSAGE);
         } catch (RuntimeException e) {
             JOptionPane.showMessageDialog(this, e.getMessage(), "Não foi possível salvar o plano", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void alternarStatusPlano() {
+        if (idSelecionado == null) { JOptionPane.showMessageDialog(this, "Selecione um plano."); return; }
+        try {
+            Plano plano = planoService.buscarPorId(idSelecionado);
+            planoService.alterarStatus(plano.getId(), !plano.isAtivo());
+            atualizarTabela();
+            JOptionPane.showMessageDialog(this, "Plano " + (plano.isAtivo() ? "inativado" : "ativado") + " com sucesso.");
+        } catch (RuntimeException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage(), "Não foi possível alterar o status", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -137,7 +161,7 @@ public class TelaPlanos extends JDialog {
                 "Confirmar exclusão", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (confirmacao != JOptionPane.YES_OPTION) return;
         try {
-            planoDAO.excluir(idSelecionado);
+            planoService.excluir(idSelecionado);
             limparFormulario(); atualizarTabela();
             JOptionPane.showMessageDialog(this, "Plano excluído com sucesso.");
         } catch (RuntimeException e) {

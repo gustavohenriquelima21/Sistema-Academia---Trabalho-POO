@@ -5,7 +5,6 @@ import academia.dados.AlunoDAO;
 import academia.dados.MatriculaDAO;
 import academia.excecoes.AlunoNaoEncontradoException;
 import academia.modelo.Aluno;
-import academia.servico.TreinoService;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -30,7 +29,7 @@ public class AlunoService {
                            String telefone, String endereco,
                            LocalDate dataNascimento) {
 
-        cpf = normalizarCpf(cpf);
+        cpf = ValidadorCpf.normalizar(cpf);
 
         validarDados(nome, cpf, telefone, endereco, dataNascimento);
 
@@ -71,7 +70,7 @@ public class AlunoService {
     }
 
     public Aluno buscarPorCpf(String cpf) {
-        cpf = normalizarCpf(cpf);
+        cpf = ValidadorCpf.normalizar(cpf);
 
         Aluno aluno = alunoDAO.buscarPorCpf(cpf);
 
@@ -92,7 +91,7 @@ public class AlunoService {
             );
         }
 
-        aluno.setCpf(normalizarCpf(aluno.getCpf()));
+        aluno.setCpf(ValidadorCpf.normalizar(aluno.getCpf()));
 
         buscarPorId(aluno.getId());
 
@@ -132,62 +131,22 @@ public class AlunoService {
         alunoDAO.excluir(id);
     }
 
+    /** Ativa ou inativa o aluno. Aluno inativo não pode ser matriculado nem receber treinos. */
     public void alterarStatus(int id, boolean ativo) {
         Aluno aluno = buscarPorId(id);
+
+        if (!ativo && matriculaDAO.buscarAtivaPorAluno(id) != null) {
+            throw new IllegalStateException(
+                "Este aluno possui matrícula ativa. Cancele a matrícula antes de inativá-lo."
+            );
+        }
 
         aluno.setAtivo(ativo);
 
         alunoDAO.atualizar(aluno);
     }
 
-    private String normalizarCpf(String cpf) {
-        if (cpf == null) {
-            return "";
-        }
 
-        return cpf.replaceAll("[^0-9]", "");
-    }
-
-    private boolean cpfValido(String cpf) {
-
-        if (cpf == null || !cpf.matches("\\d{11}")) {
-            return false;
-        }
-
-        if (cpf.matches("(\\d)\\1{10}")) {
-            return false;
-        }
-
-        int soma = 0;
-
-        for (int i = 0; i < 9; i++) {
-            soma += Character.getNumericValue(cpf.charAt(i)) * (10 - i);
-        }
-
-        int primeiroDigito = (soma * 10) % 11;
-
-        if (primeiroDigito == 10) {
-            primeiroDigito = 0;
-        }
-
-        if (primeiroDigito != Character.getNumericValue(cpf.charAt(9))) {
-            return false;
-        }
-
-        soma = 0;
-
-        for (int i = 0; i < 10; i++) {
-            soma += Character.getNumericValue(cpf.charAt(i)) * (11 - i);
-        }
-
-        int segundoDigito = (soma * 10) % 11;
-
-        if (segundoDigito == 10) {
-            segundoDigito = 0;
-        }
-
-        return segundoDigito == Character.getNumericValue(cpf.charAt(10));
-    }
 
     private void validarDados(String nome, String cpf,
                               String telefone, String endereco,
@@ -199,7 +158,7 @@ public class AlunoService {
             );
         }
 
-        if (!cpfValido(cpf)) {
+        if (!ValidadorCpf.isValido(cpf)) {
             throw new IllegalArgumentException(
                 "O CPF informado é inválido."
             );

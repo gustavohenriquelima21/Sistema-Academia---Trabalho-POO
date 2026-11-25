@@ -3,7 +3,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Matricula{
+public class Matricula implements Identificavel {
     private int id;
     private int idAluno;
     private int idPlano;
@@ -21,6 +21,7 @@ public class Matricula{
         this.status = StatusMatricula.ATIVA;
         this.mensalidades = new ArrayList<>();
     }
+    @Override
     public int getId(){
         return id;
     }

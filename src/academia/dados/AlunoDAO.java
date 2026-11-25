@@ -2,111 +2,48 @@ package academia.dados;
 
 import academia.modelo.Aluno;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
 
-public class AlunoDAO {
-
-    private final Path arquivo = Paths.get("dados", "alunos.txt");
+/** Formato: id|nome|cpf|telefone|endereco|nascimento|ativo|ALUNO (textos em Base64). */
+public class AlunoDAO extends ArquivoTextoDAO<Aluno> {
 
     public AlunoDAO() {
-        prepararArquivo();
+        super("alunos.txt", "aluno", "alunos");
     }
 
-    private void prepararArquivo() {
-        try {
-            Files.createDirectories(arquivo.getParent());
+    @Override
+    protected Aluno converter(String linha) {
+        String[] dados = linha.split("\\|", -1);
 
-            if (!Files.exists(arquivo)) {
-                Files.createFile(arquivo);
-            }
-
-        } catch (IOException e) {
-            throw new IllegalStateException(
-                "Erro ao preparar o arquivo de alunos.", e);
+        if (dados.length != 8) {
+            throw new IllegalArgumentException("Registro inválido.");
         }
-    }
-
-    private String codificar(String texto) {
-        return Base64.getEncoder().encodeToString(
-            texto.getBytes(StandardCharsets.UTF_8));
-    }
-
-    private String decodificar(String texto) {
-        return new String(
-            Base64.getDecoder().decode(texto),
-            StandardCharsets.UTF_8);
-    }
-
-    public List<Aluno> listarTodos() {
-        List<Aluno> alunos = new ArrayList<>();
-
-        try {
-            List<String> linhas = Files.readAllLines(
-                arquivo, StandardCharsets.UTF_8);
-
-            for (String linha : linhas) {
-                if (!linha.trim().isEmpty()) {
-                    alunos.add(converterAluno(linha));
-                }
-            }
-
-        } catch (IOException e) {
-            throw new IllegalStateException(
-                "Erro ao ler os alunos.", e);
+        if (!dados[7].equals("ALUNO")) {
+            throw new IllegalArgumentException("Tipo inválido.");
         }
 
-        return alunos;
+        Aluno aluno = new Aluno(
+            Integer.parseInt(dados[0]),
+            decodificar(dados[1]),
+            decodificar(dados[2]),
+            decodificar(dados[3]),
+            decodificar(dados[4]),
+            LocalDate.parse(dados[5])
+        );
+        aluno.setAtivo(Boolean.parseBoolean(dados[6]));
+        return aluno;
     }
 
-    private Aluno converterAluno(String linha) {
-        try {
-            String[] dados = linha.split("\\|", -1);
-
-            if (dados.length != 8) {
-                throw new IllegalArgumentException("Registro inválido.");
-            }
-
-            Aluno aluno = new Aluno(
-                Integer.parseInt(dados[0]),
-                decodificar(dados[1]),
-                decodificar(dados[2]),
-                decodificar(dados[3]),
-                decodificar(dados[4]),
-                LocalDate.parse(dados[5])
-            );
-
-            aluno.setAtivo(Boolean.parseBoolean(dados[6]));
-
-            // Campo reservado para manter o formato preparado
-            // para futuras extensões do registro.
-            if (!dados[7].equals("ALUNO")) {
-                throw new IllegalArgumentException("Tipo inválido.");
-            }
-
-            return aluno;
-
-        } catch (RuntimeException e) {
-            throw new IllegalStateException(
-                "Erro ao interpretar um registro de aluno: " + linha, e);
-        }
-    }
-
-    public Aluno buscarPorId(int id) {
-        for (Aluno aluno : listarTodos()) {
-            if (aluno.getId() == id) {
-                return aluno;
-            }
-        }
-
-        return null;
+    @Override
+    protected String formatar(Aluno aluno) {
+        return aluno.getId() + "|" +
+            codificar(aluno.getNome()) + "|" +
+            codificar(aluno.getCpf()) + "|" +
+            codificar(aluno.getTelefone()) + "|" +
+            codificar(aluno.getEndereco()) + "|" +
+            aluno.getDataNascimento() + "|" +
+            aluno.isAtivo() + "|" +
+            "ALUNO";
     }
 
     public Aluno buscarPorCpf(String cpf) {
@@ -115,76 +52,6 @@ public class AlunoDAO {
                 return aluno;
             }
         }
-
         return null;
-    }
-
-    public int proximoId() {
-        int maiorId = 0;
-
-        for (Aluno aluno : listarTodos()) {
-            if (aluno.getId() > maiorId) {
-                maiorId = aluno.getId();
-            }
-        }
-
-        return maiorId + 1;
-    }
-
-    public void inserir(Aluno aluno) {
-        List<Aluno> alunos = listarTodos();
-        alunos.add(aluno);
-        salvarTodos(alunos);
-    }
-
-    public void atualizar(Aluno alunoAtualizado) {
-        List<Aluno> alunos = listarTodos();
-        boolean encontrado = false;
-
-        for (int i = 0; i < alunos.size(); i++) {
-            if (alunos.get(i).getId() == alunoAtualizado.getId()) {
-                alunos.set(i, alunoAtualizado);
-                encontrado = true;
-                break;
-            }
-        }
-
-        if (encontrado) {
-            salvarTodos(alunos);
-        }
-    }
-
-    public void excluir(int id) {
-        List<Aluno> alunos = listarTodos();
-
-        alunos.removeIf(aluno -> aluno.getId() == id);
-
-        salvarTodos(alunos);
-    }
-
-    private void salvarTodos(List<Aluno> alunos) {
-        List<String> linhas = new ArrayList<>();
-
-        for (Aluno aluno : alunos) {
-            String linha =
-                aluno.getId() + "|" +
-                codificar(aluno.getNome()) + "|" +
-                codificar(aluno.getCpf()) + "|" +
-                codificar(aluno.getTelefone()) + "|" +
-                codificar(aluno.getEndereco()) + "|" +
-                aluno.getDataNascimento() + "|" +
-                aluno.isAtivo() + "|" +
-                "ALUNO";
-
-            linhas.add(linha);
-        }
-
-        try {
-            ArquivoTexto.salvarAtomico(arquivo, linhas);
-
-        } catch (IOException e) {
-            throw new IllegalStateException(
-                "Erro ao salvar os alunos.", e);
-        }
     }
 }

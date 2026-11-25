@@ -1,13 +1,14 @@
 package academia.interfacegrafica;
 
-import academia.dados.PlanoDAO;
 import academia.modelo.Aluno;
+import academia.modelo.FormaPagamento;
 import academia.modelo.Matricula;
 import academia.modelo.Mensalidade;
 import academia.modelo.Plano;
 import academia.modelo.StatusMensalidade;
 import academia.servico.AlunoService;
 import academia.servico.MatriculaService;
+import academia.servico.PlanoService;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -41,14 +42,14 @@ public class TelaMatriculas extends JDialog {
     private boolean atualizandoTabelaMensalidades;
 
     private final AlunoService alunoService;
-    private final PlanoDAO planoDAO;
+    private final PlanoService planoService;
     private final MatriculaService matriculaService;
 
     public TelaMatriculas(JFrame telaPrincipal, AlunoService alunoService,
-                          PlanoDAO planoDAO, MatriculaService matriculaService) {
+                          PlanoService planoService, MatriculaService matriculaService) {
         super(telaPrincipal, "Gerenciamento de Matrículas", false);
         this.alunoService = alunoService;
-        this.planoDAO = planoDAO;
+        this.planoService = planoService;
         this.matriculaService = matriculaService;
 
         setSize(1000, 650);
@@ -235,7 +236,7 @@ public class TelaMatriculas extends JDialog {
 
     private JPanel criarPainelTabelaMensalidades() {
         modeloMensalidades = new DefaultTableModel(
-                new String[]{"Parcela", "Vencimento", "Valor", "Data do pagamento", "Status"}, 0
+                new String[]{"Parcela", "Vencimento", "Valor", "Data do pagamento", "Forma", "Valor pago", "Status"}, 0
         ) {
             @Override
             public boolean isCellEditable(int linha, int coluna) {
@@ -292,24 +293,11 @@ public class TelaMatriculas extends JDialog {
         }
 
         try {
-            String nome = campoNome.getText().trim();
             double valorMensal = Double.parseDouble(
                     campoValor.getText().trim().replace(',', '.'));
             int duracaoMeses = Integer.parseInt(campoDuracao.getText().trim());
 
-            if (nome.isEmpty()) {
-                throw new IllegalArgumentException("Informe o nome do plano.");
-            }
-            if (!Double.isFinite(valorMensal) || valorMensal < 0) {
-                throw new IllegalArgumentException("Informe um valor mensal válido.");
-            }
-            if (duracaoMeses <= 0) {
-                throw new IllegalArgumentException("A duração deve ser maior que zero.");
-            }
-
-            Plano plano = new Plano(planoDAO.proximoId(), nome,
-                    valorMensal, duracaoMeses);
-            planoDAO.inserir(plano);
+            Plano plano = planoService.cadastrar(campoNome.getText(), valorMensal, duracaoMeses);
             atualizarDados();
             selecionarPlanoPorId(plano.getId());
             JOptionPane.showMessageDialog(this,
@@ -334,6 +322,7 @@ public class TelaMatriculas extends JDialog {
     }
 
     private void atualizarDados() {
+        matriculaService.encerrarVencidas();
         carregarDados();
         atualizarTabela();
     }
@@ -343,7 +332,7 @@ public class TelaMatriculas extends JDialog {
         Plano planoSelecionado = (Plano) comboPlano.getSelectedItem();
 
         List<Aluno> alunos = alunoService.listarTodos();
-        List<Plano> planos = planoDAO.listarTodos();
+        List<Plano> planos = planoService.listarTodos();
 
         comboAluno.removeAllItems();
         comboPlano.removeAllItems();
@@ -384,7 +373,7 @@ public class TelaMatriculas extends JDialog {
 
             for (Matricula matricula : matriculaService.listarTodos()) {
                 Aluno aluno = alunoService.buscarPorId(matricula.getIdAluno());
-                Plano plano = planoDAO.buscarPorId(matricula.getIdPlano());
+                Plano plano = buscarPlanoOuNulo(matricula.getIdPlano());
 
                 modeloTabela.addRow(new Object[]{
                         matricula.getId(),
@@ -412,6 +401,14 @@ public class TelaMatriculas extends JDialog {
         }
 
         atualizarTabelaMensalidades();
+    }
+
+    private Plano buscarPlanoOuNulo(int idPlano) {
+        try {
+            return planoService.buscarPorId(idPlano);
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 
     private void selecionarMatricula() {
@@ -442,11 +439,19 @@ public class TelaMatriculas extends JDialog {
                     String dataPagamento = mensalidade.getDataPagamento() == null
                             ? "—" : mensalidade.getDataPagamento().format(formatoData);
 
+                    boolean paga = mensalidade.getStatus() == StatusMensalidade.PAGA;
+                    String forma = mensalidade.getFormaPagamento() == null
+                            ? "—" : mensalidade.getFormaPagamento().getNome();
+                    String valorPago = paga && mensalidade.getFormaPagamento() != null
+                            ? formatoValor.format(mensalidade.getValorPago()) : "—";
+
                     modeloMensalidades.addRow(new Object[]{
                             mensalidade.getNumeroParcela(),
                             mensalidade.getDataVencimento().format(formatoData),
                             formatoValor.format(mensalidade.getValor()),
                             dataPagamento,
+                            forma,
+                            valorPago,
                             status
                     });
                     if (numeroParcelaSelecionada != null
@@ -565,23 +570,51 @@ public class TelaMatriculas extends JDialog {
         }
 
         DateTimeFormatter formato = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        String valor = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"))
-                .format(mensalidade.getValor());
+        NumberFormat moeda = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
         LocalDate dataPagamento = LocalDate.now();
-        int confirmacao = JOptionPane.showConfirmDialog(this,
-                "Confirmar pagamento da parcela " + mensalidade.getNumeroParcela()
-                        + " no valor de " + valor + " em " + dataPagamento.format(formato) + "?",
-                "Confirmar pagamento", JOptionPane.YES_NO_OPTION,
+        double valorDevido = mensalidade.calcularValorDevido(dataPagamento);
+
+        JComboBox<FormaPagamento> comboForma = new JComboBox<>(
+                FormaPagamento.disponiveis().toArray(new FormaPagamento[0]));
+        JLabel rotuloValorFinal = new JLabel();
+        Runnable atualizarValorFinal = () -> {
+            FormaPagamento forma = (FormaPagamento) comboForma.getSelectedItem();
+            // Polimorfismo: cada forma de pagamento calcula o valor final do seu jeito.
+            rotuloValorFinal.setText(moeda.format(forma.calcularValorFinal(valorDevido)));
+        };
+        comboForma.addActionListener(e -> atualizarValorFinal.run());
+        atualizarValorFinal.run();
+
+        JPanel painelPagamento = new JPanel(new GridLayout(0, 2, 8, 8));
+        painelPagamento.add(new JLabel("Parcela:"));
+        painelPagamento.add(new JLabel(String.valueOf(mensalidade.getNumeroParcela())));
+        painelPagamento.add(new JLabel("Data do pagamento:"));
+        painelPagamento.add(new JLabel(dataPagamento.format(formato)));
+        painelPagamento.add(new JLabel("Valor da parcela:"));
+        painelPagamento.add(new JLabel(moeda.format(mensalidade.getValor())));
+        if (valorDevido > mensalidade.getValor()) {
+            painelPagamento.add(new JLabel("Com multa por atraso (2%):"));
+            painelPagamento.add(new JLabel(moeda.format(valorDevido)));
+        }
+        painelPagamento.add(new JLabel("Forma de pagamento:"));
+        painelPagamento.add(comboForma);
+        painelPagamento.add(new JLabel("Valor a pagar:"));
+        painelPagamento.add(rotuloValorFinal);
+
+        int confirmacao = JOptionPane.showConfirmDialog(this, painelPagamento,
+                "Registrar pagamento", JOptionPane.OK_CANCEL_OPTION,
                 JOptionPane.QUESTION_MESSAGE);
-        if (confirmacao != JOptionPane.YES_OPTION) {
+        if (confirmacao != JOptionPane.OK_OPTION) {
             return;
         }
+        FormaPagamento formaEscolhida = (FormaPagamento) comboForma.getSelectedItem();
 
         try {
-            matriculaService.pagarMensalidade(matricula.getId(),
-                    mensalidade.getNumeroParcela(), dataPagamento);
+            Mensalidade paga = matriculaService.pagarMensalidade(matricula.getId(),
+                    mensalidade.getNumeroParcela(), dataPagamento, formaEscolhida);
             atualizarDados();
-            JOptionPane.showMessageDialog(this, "Pagamento registrado com sucesso.");
+            JOptionPane.showMessageDialog(this, "Pagamento registrado com sucesso: "
+                    + moeda.format(paga.getValorPago()) + " via " + formaEscolhida.getNome() + ".");
         } catch (RuntimeException e) {
             atualizarDados();
             JOptionPane.showMessageDialog(this, e.getMessage(),
