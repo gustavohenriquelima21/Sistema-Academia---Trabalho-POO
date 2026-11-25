@@ -1,0 +1,162 @@
+@startuml diagrama-classes
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam shadowing false
+skinparam defaultFontName DejaVu Sans
+skinparam class {
+  BackgroundColor White
+  BorderColor #333333
+  ArrowColor #333333
+}
+hide empty members
+title Sistema de Academia — Diagrama de Classes (pacote academia.modelo)
+
+interface Identificavel <<interface>> {
+  + getId() : int
+}
+interface DuracaoCalculavel <<interface>> {
+  + calcularDuracaoMinutos() : double
+}
+interface Serializable <<java.io>>
+
+abstract class Pessoa {
+  - id : int
+  - nome : String
+  - cpf : String
+  - telefone : String
+  - endereco : String
+  + {abstract} getTipoPessoa() : String
+}
+class Aluno {
+  - dataNascimento : LocalDate
+  - ativo : boolean
+  + getTipoPessoa() : String
+}
+class Instrutor {
+  - especialidade : String
+  - cref : String
+  + getTipoPessoa() : String
+}
+
+class Plano {
+  - id : int
+  - nome : String
+  - valorMensal : double
+  - duracaoMeses : int
+  - ativo : boolean
+  + calcularValorTotal() : double
+}
+
+class Matricula {
+  - id : int
+  - idAluno : int
+  - idPlano : int
+  - dataInicio : LocalDate
+  - dataFim : LocalDate
+  - status : StatusMatricula
+  + gerarMensalidades(plano : Plano) : void
+  + cancelar() : void
+  + estaAtiva() : boolean
+}
+class Mensalidade {
+  - numeroParcela : int
+  - dataVencimento : LocalDate
+  - valor : double
+  - dataPagamento : LocalDate
+  - status : StatusMensalidade
+  - valorPago : double
+  + calcularValorDevido(data : LocalDate) : double
+  + pagar(data : LocalDate, forma : FormaPagamento) : void
+  + estaAtrasada() : boolean
+}
+abstract class FormaPagamento {
+  + {abstract} getCodigo() : String
+  + {abstract} getNome() : String
+  # {abstract} aplicarRegra(valorBase : double) : double
+  + calcularValorFinal(valorBase : double) : double
+  + {static} disponiveis() : List<FormaPagamento>
+  + {static} porCodigo(codigo : String) : FormaPagamento
+}
+class PagamentoDinheiro {
+  # aplicarRegra(valorBase : double) : double
+}
+class PagamentoPix {
+  # aplicarRegra(valorBase : double) : double
+}
+class PagamentoCartaoCredito {
+  # aplicarRegra(valorBase : double) : double
+}
+
+class Treino {
+  - id : int
+  - nome : String
+  - objetivo : String
+  - dataCriacao : LocalDate
+  + adicionarMusculacao(...) : ExercicioMusculacao
+  + adicionarCardio(...) : ExercicioCardio
+  + removerExercicio(indice : int) : void
+  + calcularDuracaoMinutos() : double
+}
+abstract class Exercicio {
+  - nome : String
+  - observacao : String
+  + {abstract} getTipo() : String
+  + {abstract} getDetalhes() : String
+  + {abstract} calcularDuracaoMinutos() : double
+}
+class ExercicioMusculacao {
+  - grupoMuscular : String
+  - series : int
+  - repeticoes : int
+  - carga : double
+  - descansoSegundos : int
+  + calcularDuracaoMinutos() : double
+}
+class ExercicioCardio {
+  - tempoMinutos : int
+  - intensidade : String
+  + calcularDuracaoMinutos() : double
+}
+
+enum StatusMatricula {
+  ATIVA
+  CANCELADA
+  ENCERRADA
+}
+enum StatusMensalidade {
+  PENDENTE
+  PAGA
+}
+
+' ---- Herança e realização ----
+Pessoa <|-- Aluno
+Pessoa <|-- Instrutor
+Exercicio <|-- ExercicioMusculacao
+Exercicio <|-- ExercicioCardio
+FormaPagamento <|-- PagamentoDinheiro
+FormaPagamento <|-- PagamentoPix
+FormaPagamento <|-- PagamentoCartaoCredito
+
+Identificavel <|.. Pessoa
+Identificavel <|.. Plano
+Identificavel <|.. Matricula
+Identificavel <|.. Treino
+DuracaoCalculavel <|.. Exercicio
+DuracaoCalculavel <|.. Treino
+Serializable <|.. Pessoa
+Serializable <|.. Treino
+Serializable <|.. Exercicio
+
+' ---- Composição (parte não existe sem o todo) ----
+Matricula *-- "1..*" Mensalidade : gera >
+Treino *-- "0..*" Exercicio : contém >
+
+' ---- Agregação / associação ----
+Treino o-- "1" Aluno : para >
+Treino o-- "1" Instrutor : elaborado por >
+Matricula --> "1" Aluno : idAluno
+Matricula --> "1" Plano : idPlano
+Mensalidade --> "0..1" FormaPagamento : pago com >
+Matricula ..> StatusMatricula
+Mensalidade ..> StatusMensalidade
+@enduml

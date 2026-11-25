@@ -1,0 +1,4 @@
+1|TWVuc2Fs|119.9|1|true
+2|VHJpbWVzdHJhbA==|99.9|3|true
+3|QW51YWw=|79.9|12|true
+4|RXN0dWRhbnRlIChhbnRpZ28p|69.9|6|false

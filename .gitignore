@@ -1,11 +1,15 @@
-
 # Arquivos compilados do Java
 *.class
+/out/
 
-# Pastas de compilação
+# Pastas de compilação antigas
 /academia/
 /app/
 
-# Dados locais de teste
+# Dados locais (cada máquina gera os seus; há exemplos em dados-exemplo/)
 /dados/
 
+# Configurações locais de IDE
+.vscode/
+.idea/
+*.iml

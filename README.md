@@ -8,8 +8,10 @@ Aplicação desktop para gerenciamento de cadastros e atividades de uma academia
 
 - Cadastro, consulta, edição e exclusão de alunos, com validação de CPF e controle de situação ativo/inativo.
 - Cadastro, consulta, edição e exclusão de instrutores, incluindo especialidade e CREF.
-- Cadastro, consulta, edição e exclusão de planos, com nome, valor mensal, duração e situação.
-- Matrículas de alunos em planos, com geração de mensalidades, cancelamento e registro de pagamento.
+- Ativação e inativação de alunos (aluno inativo não pode ser matriculado nem receber treino; não é possível inativar aluno com matrícula ativa).
+- Cadastro, consulta, edição, exclusão, ativação e inativação de planos (plano inativo não aceita novas matrículas).
+- Matrículas de alunos em planos, com geração de mensalidades, cancelamento e encerramento automático das matrículas vencidas.
+- Pagamento de mensalidades em **Dinheiro (5% de desconto)**, **Pix (2% de desconto)** ou **Cartão de crédito (3% de taxa)**, com **multa de 2%** quando a parcela é paga após o vencimento.
 - Bloqueio de exclusão de alunos ou planos vinculados a matrículas.
 - Cadastro e edição de treinos associados a aluno e instrutor.
 - Adição e remoção de exercícios de musculação e cardio, com estimativa da duração do treino.
@@ -29,14 +31,16 @@ Não há configuração de Maven ou Gradle no projeto.
 ```text
 src/academia/
 ├── app/                 Inicialização da aplicação
-├── dados/               DAOs e persistência em arquivos
+├── dados/               DAO genérico (ArquivoTextoDAO<T>) e DAOs concretos
 ├── excecoes/            Exceções específicas do domínio
 ├── interfacegrafica/    Janelas Swing
 ├── modelo/              Entidades e regras locais do domínio
 └── servico/             Regras de aplicação para alunos, instrutores,
                          matrículas e treinos
 
-dados/                   Arquivos de dados locais
+dados/                   Arquivos de dados locais (criados na 1ª execução)
+dados-exemplo/           Dados prontos para demonstração
+docs/                    Diagramas UML (.puml e .png) e capturas de tela
 out/                     Destino dos arquivos compilados
 ```
 
@@ -46,9 +50,11 @@ out/                     Destino dos arquivos compilados
 - `academia.interfacegrafica.TelaPrincipal`: menu para abrir as demais telas.
 - `TelaAlunos`, `TelaInstrutores`, `TelaPlanos`, `TelaMatriculas` e `TelaTreinos`: interfaces para os respectivos cadastros e operações.
 - `Aluno`, `Instrutor`, `Plano`, `Matricula` e `Mensalidade`: entidades do domínio.
+- `FormaPagamento` (abstrata), `PagamentoDinheiro`, `PagamentoPix` e `PagamentoCartaoCredito`: formas de pagamento com regras de cálculo diferentes.
 - `Treino`, `ExercicioMusculacao` e `ExercicioCardio`: modelo de treinos e exercícios.
-- `AlunoDAO`, `InstrutorDAO`, `PlanoDAO` e `MatriculaDAO`: leitura e gravação dos dados em texto.
-- `AlunoService`, `InstrutorService`, `MatriculaService` e `TreinoService`: operações e regras de negócio.
+- `Identificavel` e `DuracaoCalculavel`: interfaces do domínio.
+- `ArquivoTextoDAO<T>` (abstrata e genérica) e `AlunoDAO`, `InstrutorDAO`, `PlanoDAO`, `MatriculaDAO`: leitura e gravação dos dados em texto.
+- `AlunoService`, `InstrutorService`, `PlanoService`, `MatriculaService` e `TreinoService`: operações e regras de negócio; `ValidadorCpf` valida CPF.
 - `ArquivoTexto`: gravação de arquivos texto em UTF-8 com substituição por arquivo temporário.
 
 ## Persistência
@@ -58,14 +64,55 @@ Os caminhos são relativos à pasta de execução. Inicie o programa com a pasta
 - `dados/alunos.txt`: alunos; campos textuais codificados em Base64 e campos estruturados separados por `|`.
 - `dados/instrutores.txt`: instrutores; campos textuais codificados em Base64 e campos separados por `|`.
 - `dados/planos.txt`: planos; nome codificado em Base64 e demais campos separados por `|`.
-- `dados/matriculas.txt`: matrículas e mensalidades em formato texto delimitado.
+- `dados/matriculas.txt`: matrículas e mensalidades em formato texto delimitado (cada mensalidade paga guarda também a forma de pagamento e o valor pago; arquivos antigos, sem esses campos, continuam sendo lidos).
 - `dados/treinos.dat`: lista serializada de objetos `Treino`, incluindo seus exercícios.
 
 Os quatro DAOs de texto usam UTF-8 e mantêm o formato existente. A gravação substitui o arquivo a partir de um temporário. `TreinoService` também grava o `.dat` por temporário e carrega o arquivo quando é iniciado. A aplicação cria a pasta `dados/` e os arquivos texto necessários quando ainda não existem.
 
+## Conceitos de POO aplicados
+
+| Conceito | Onde está no código |
+|---|---|
+| Herança | `Pessoa` → `Aluno`, `Instrutor`; `Exercicio` → `ExercicioMusculacao`, `ExercicioCardio`; `FormaPagamento` → `PagamentoDinheiro`, `PagamentoPix`, `PagamentoCartaoCredito`; `ArquivoTextoDAO<T>` → 4 DAOs |
+| Classe abstrata | `Pessoa`, `Exercicio`, `FormaPagamento`, `ArquivoTextoDAO<T>` |
+| Polimorfismo | `calcularDuracaoMinutos()` (musculação × cardio), `calcularValorFinal()` (cada forma de pagamento), `converter()`/`formatar()` (cada DAO) |
+| Interface | `Identificavel`, `DuracaoCalculavel` (implementada por `Exercicio` e `Treino`) e a interface gráfica Swing |
+| Composição | `Matricula` cria e contém suas `Mensalidade`s; `Treino` cria e contém seus `Exercicio`s |
+| Agregação / associação | `Treino` referencia `Aluno` e `Instrutor`, que existem independentemente; `Matricula` → `Aluno`, `Plano` |
+| Encapsulamento | atributos `private`; `Treino.getExercicios()` devolve lista não modificável |
+| Exceções customizadas | `AlunoNaoEncontradoException`, `InstrutorNaoEncontradoException`, `PlanoNaoEncontradoException`, `MatriculaInvalidaException` (não verificadas) e `TreinoNaoEncontradoException` (verificada) |
+| Persistência | arquivos texto UTF-8 (alunos, instrutores, planos, matrículas) e serialização Java (`treinos.dat`) |
+| Genéricos | `ArquivoTextoDAO<T extends Identificavel>` |
+
+Diagramas: [`docs/diagrama-classes.png`](docs/diagrama-classes.png) e [`docs/diagrama-camadas.png`](docs/diagrama-camadas.png).
+
+## Dados de demonstração
+
+Para apresentar o sistema já com dados, copie o conteúdo de `dados-exemplo/` para `dados/` antes de executar (5 alunos, 2 instrutores, 4 planos, 4 matrículas com pagamentos e 2 treinos).
+
+```powershell
+New-Item -ItemType Directory -Force dados | Out-Null; Copy-Item dados-exemplo\* dados\ -Force
+```
+
 ## Integrantes
 
-Os arquivos do projeto consultados não identificam nominalmente os integrantes. Inclua aqui os nomes do grupo, se necessário.
+ - Ana Laura Moreno Naves / 12521BSI209
+ 
+ - Benjamim Martins Magalhães Sena / 12521BSI246
+
+ - Giovanna Fernandes / 12521BSI262
+
+ - Gustavo Henrique Silva Lima / 12521BSI237
+
+ - Isabela Turatti Silva / 12521BSI261
+
+ - Matheus Yoshida Pasini / 12511BSI224
+
+ - Pedro Rezende Borges / 12521BSI216
+
+ - Pedro Henrique Pereira da Mata / 12521BSI243
+
+Repositório: https://github.com/gustavohenriquelima21/Sistema-Academia---Trabalho-POO
 
 ## Como compilar e executar
 

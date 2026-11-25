@@ -1,0 +1,103 @@
+@startuml diagrama-camadas
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam defaultFontName DejaVu Sans
+skinparam linetype ortho
+hide empty members
+set separator none
+title Sistema de Academia — Camadas (interface gráfica, serviço e dados)
+
+package "academia.interfacegrafica (Swing)" {
+  class TelaPrincipal <<JFrame>>
+  class TelaAlunos <<JDialog>>
+  class TelaInstrutores <<JDialog>>
+  class TelaPlanos <<JDialog>>
+  class TelaMatriculas <<JDialog>>
+  class TelaTreinos <<JDialog>>
+}
+
+package "academia.servico" {
+  class AlunoService
+  class InstrutorService
+  class PlanoService
+  class MatriculaService {
+    + matricular(idAluno, idPlano, inicio) : Matricula
+    + pagarMensalidade(idMatricula, parcela, data, forma) : Mensalidade
+    + cancelar(id) : void
+    + encerrarVencidas() : int
+  }
+  class TreinoService {
+    - treinos : List<Treino>
+    - salvar() : void
+    - carregar() : void
+  }
+  class ValidadorCpf <<utilitária>> {
+    + {static} normalizar(cpf) : String
+    + {static} isValido(cpf) : boolean
+  }
+}
+
+package "academia.dados" {
+  abstract class "ArquivoTextoDAO<T extends Identificavel>" as ArquivoTextoDAO {
+    + listarTodos() : List<T>
+    + buscarPorId(id) : T
+    + proximoId() : int
+    + inserir(T) : void
+    + atualizar(T) : void
+    + excluir(id) : void
+    # {abstract} converter(linha) : T
+    # {abstract} formatar(T) : String
+  }
+  class AlunoDAO
+  class InstrutorDAO
+  class PlanoDAO
+  class MatriculaDAO
+  class ArquivoTexto <<utilitária>> {
+    ~ {static} salvarAtomico(arquivo, linhas) : void
+  }
+}
+
+package "academia.excecoes" {
+  class AlunoNaoEncontradoException <<RuntimeException>>
+  class InstrutorNaoEncontradoException <<RuntimeException>>
+  class PlanoNaoEncontradoException <<RuntimeException>>
+  class MatriculaInvalidaException <<RuntimeException>>
+  class TreinoNaoEncontradoException <<Exception (checked)>>
+}
+
+ArquivoTextoDAO <|-- AlunoDAO
+ArquivoTextoDAO <|-- InstrutorDAO
+ArquivoTextoDAO <|-- PlanoDAO
+ArquivoTextoDAO <|-- MatriculaDAO
+ArquivoTextoDAO ..> ArquivoTexto
+
+TelaPrincipal --> TelaAlunos
+TelaPrincipal --> TelaInstrutores
+TelaPrincipal --> TelaPlanos
+TelaPrincipal --> TelaMatriculas
+TelaPrincipal --> TelaTreinos
+
+TelaAlunos --> AlunoService
+TelaInstrutores --> InstrutorService
+TelaPlanos --> PlanoService
+TelaMatriculas --> MatriculaService
+TelaMatriculas --> PlanoService
+TelaTreinos --> TreinoService
+
+AlunoService --> AlunoDAO
+AlunoService --> TreinoService
+InstrutorService --> InstrutorDAO
+InstrutorService --> TreinoService
+PlanoService --> PlanoDAO
+MatriculaService --> MatriculaDAO
+MatriculaService --> AlunoService
+MatriculaService --> PlanoService
+AlunoService ..> ValidadorCpf
+InstrutorService ..> ValidadorCpf
+
+AlunoService ..> AlunoNaoEncontradoException : lança
+InstrutorService ..> InstrutorNaoEncontradoException : lança
+PlanoService ..> PlanoNaoEncontradoException : lança
+MatriculaService ..> MatriculaInvalidaException : lança
+TreinoService ..> TreinoNaoEncontradoException : lança
+@enduml
